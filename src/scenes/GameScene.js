@@ -175,7 +175,7 @@ class GameScene {
       this.monsters,
       (type, hpMult) => this._spawnMonster(type, hpMult),
       (wave) => {
-        this.waveAnnounce      = `Wave  ${wave}`;
+        this.waveAnnounce      = `WELLE ${wave}`;
         this.waveAnnounceTimer = 2.5;
       }
     );

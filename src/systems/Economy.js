@@ -1,9 +1,9 @@
 class Economy {
   constructor(startGold = 50) {
     this.gold    = startGold;
-    this.mana    = 100;
+    this.mana    = 0;
     this.maxMana = 100;
-    this.manaRegen = 2; // mana per second
+    this.manaRegen = 1; // mana per second base
   }
 
   addGold(amount) {
