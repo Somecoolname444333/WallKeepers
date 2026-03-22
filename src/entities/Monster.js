@@ -38,6 +38,7 @@ class Monster {
     this.name        = def.name;
     this.maxHp       = Math.round(def.hp * hpMultiplier);
     this.hp          = this.maxHp;
+    this.baseSpeed   = def.speed;
     this.speed       = def.speed;
     this.wallDamage  = def.damage;
     this.goldReward  = def.gold;
@@ -56,6 +57,10 @@ class Monster {
     // Wobble animation
     this.wobble    = 0;
     this.wobbleDir = 1;
+
+    // Slowed state
+    this.slowed    = false;
+    this.slowTimer = 0;
   }
 
   takeDamage(amount) {
@@ -66,9 +71,26 @@ class Monster {
     }
   }
 
+  applySlowed(duration) {
+    if (!this.slowed) {
+      this.speed = this.baseSpeed * 0.5;
+    }
+    this.slowed    = true;
+    this.slowTimer = duration;
+  }
+
   // Returns wall damage dealt this frame (consumes timer)
   update(dt, wallFaceX) {
     if (this.dead) return;
+
+    // Handle slow expiry
+    if (this.slowed) {
+      this.slowTimer -= dt;
+      if (this.slowTimer <= 0) {
+        this.slowed = false;
+        this.speed  = this.baseSpeed;
+      }
+    }
 
     // Animate
     this.wobble += dt * 9 * this.wobbleDir;
@@ -118,6 +140,17 @@ class Monster {
     ctx.strokeStyle = this.outline;
     ctx.lineWidth = 2;
     ctx.stroke();
+
+    // Ice tint overlay when slowed
+    if (this.slowed) {
+      ctx.save();
+      ctx.globalAlpha = 0.45;
+      ctx.fillStyle = '#4488ff';
+      ctx.beginPath();
+      ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
 
     // Eyes
     const er = this.radius * 0.22;

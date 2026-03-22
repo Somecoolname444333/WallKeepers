@@ -20,6 +20,16 @@ class Economy {
     return this.gold >= amount;
   }
 
+  spendMana(amount) {
+    if (this.mana < amount) return false;
+    this.mana -= amount;
+    return true;
+  }
+
+  canAffordMana(amount) {
+    return this.mana >= amount;
+  }
+
   update(dt) {
     this.mana = Math.min(this.maxMana, this.mana + this.manaRegen * dt);
   }
