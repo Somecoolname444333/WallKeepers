@@ -13,51 +13,54 @@ class GameScene {
 
     this.MENU_H = 70;
 
-    // Derived layout (recomputed on resize)
+    // Game state machine: 'start' | 'playing' | 'gameover'
+    this.state      = 'start';
+    this.paused     = false;
+    this.difficulty = 'normal';
+    this.difficultyMult = { easy: 0.7, normal: 1.0, hard: 1.4 };
+    this.highScore  = parseInt(localStorage.getItem('wallkeepers_highscore') || '0');
+
+    // Layout
     this._computeLayout();
 
-    // Core entities
-    this.wall        = new Wall(this.wallX, 0, this.wallW, this.playH);
+    // Core entities (null until game starts)
+    this.wall        = null;
     this.monsters    = [];
     this.soldiers    = [];
     this.projectiles = [];
 
     // Systems
-    this.economy       = new Economy(50);
-    this.upgradeSystem = new UpgradeSystem(this.economy);
-    this.waveManager   = new WaveManager();
+    this.economy       = null;
+    this.upgradeSystem = null;
+    this.waveManager   = null;
     this.sidePanel     = new SidePanel();
 
     // UI state
     this.menuButtons   = [];
     this.addArcherCost = 100;
-    this.gameOver      = false;
-
-    // Buildings & machines
     this.buildings     = { kaserne: 0, schmiede: 0, magierturm: 0 };
     this.catapults     = [];
     this.schmiede_mult = 1.0;
 
     // Visual FX
-    this.wallFlash         = 0;     // red flash timer
-    this.wallShake         = 0;     // wall shake timer
-    this.deathEffects      = [];    // expanding rings
-    this.floatingTexts     = [];    // +Xg / spell popups
-    this.waveAnnounce      = null;  // "WELLE N" text
+    this.wallFlash         = 0;
+    this.wallShake         = 0;
+    this.deathEffects      = [];
+    this.floatingTexts     = [];
+    this.waveAnnounce      = null;
     this.waveAnnounceTimer = 0;
 
-    // Start with 2 archers
-    this.addArcher();
-    this.addArcher();
+    // Start screen button rects (populated each draw)
+    this._startBtns = [];
 
     this._setupInput();
   }
 
   // ── Layout ──────────────────────────────────────────────────────────────────
   _computeLayout() {
-    this.playH = this.canvas.height - this.MENU_H;
-    this.wallX = Math.floor(this.canvas.width * 0.42);
-    this.wallW = 34;
+    this.playH     = this.canvas.height - this.MENU_H;
+    this.wallX     = Math.floor(this.canvas.width * 0.42);
+    this.wallW     = 34;
     this.wallFaceX = this.wallX + this.wallW;
   }
 
@@ -77,7 +80,6 @@ class GameScene {
     const s   = new Soldier(pos[newCount - 1].x, pos[newCount - 1].y);
     s.damage      = 15 + this.upgradeSystem.upgrades.archerDamage.level * 5;
     s.attackSpeed =  1 + this.upgradeSystem.upgrades.archerSpeed.level  * 0.2;
-    // Apply schmiede bonus
     if (this.schmiede_mult > 1) s.damage = Math.round(s.damage * this.schmiede_mult);
     this.soldiers.push(s);
     this._repositionSoldiers();
@@ -95,12 +97,48 @@ class GameScene {
     const cx      = this.wallX + this.wallW / 2;
     const margin  = 50;
     const usable  = this.playH - margin * 2;
-    const positions = [];
+    const pos = [];
     for (let i = 0; i < count; i++) {
       const t = count === 1 ? 0.5 : i / (count - 1);
-      positions.push({ x: cx, y: margin + t * usable });
+      pos.push({ x: cx, y: margin + t * usable });
     }
-    return positions;
+    return pos;
+  }
+
+  // ── Init / Restart ──────────────────────────────────────────────────────────
+  _initGame() {
+    this._computeLayout();
+    this.wall          = new Wall(this.wallX, 0, this.wallW, this.playH);
+    this.monsters      = [];
+    this.soldiers      = [];
+    this.projectiles   = [];
+    this.economy       = new Economy(50);
+    this.upgradeSystem = new UpgradeSystem(this.economy);
+    this.waveManager   = new WaveManager();
+    this.addArcherCost = 100;
+    this.buildings     = { kaserne: 0, schmiede: 0, magierturm: 0 };
+    this.catapults     = [];
+    this.schmiede_mult = 1.0;
+    this.deathEffects  = [];
+    this.floatingTexts = [];
+    this.wallFlash     = 0;
+    this.wallShake     = 0;
+    this.waveAnnounce  = null;
+    this.waveAnnounceTimer = 0;
+    this.paused        = false;
+    this.sidePanel.close();
+    this.addArcher();
+    this.addArcher();
+  }
+
+  _startPlaying() {
+    this._initGame();
+    this.state = 'playing';
+  }
+
+  _restart() {
+    this._initGame();
+    this.state = 'playing';
   }
 
   // ── Input ───────────────────────────────────────────────────────────────────
@@ -115,10 +153,37 @@ class GameScene {
       this.canvas.height = window.innerHeight;
       this.onResize();
     });
+
+    window.addEventListener('keydown', e => {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        if (this.state === 'playing') this.paused = !this.paused;
+      }
+    });
   }
 
   _handleClick(x, y) {
-    if (this.gameOver) { this._restart(); return; }
+    if (this.state === 'start') {
+      for (const btn of this._startBtns) {
+        if (x >= btn.x && x <= btn.x + btn.w && y >= btn.y && y <= btn.y + btn.h) {
+          if (btn.id.startsWith('diff_')) {
+            this.difficulty = btn.id.slice(5);
+          } else if (btn.id === 'play') {
+            this._startPlaying();
+          }
+          return;
+        }
+      }
+      return;
+    }
+
+    if (this.state === 'gameover') {
+      // Check if click is within the play-again button area
+      this._restart();
+      return;
+    }
+
+    if (this.paused) return;
 
     // Panel absorbs clicks on its area
     if (this.sidePanel.visible && x < this.sidePanel.width) {
@@ -141,55 +206,28 @@ class GameScene {
     if (this.sidePanel.visible) this.sidePanel.close();
   }
 
-  // ── Restart ─────────────────────────────────────────────────────────────────
-  _restart() {
-    this._computeLayout();
-    this.wall          = new Wall(this.wallX, 0, this.wallW, this.playH);
-    this.monsters      = [];
-    this.soldiers      = [];
-    this.projectiles   = [];
-    this.economy       = new Economy(50);
-    this.upgradeSystem = new UpgradeSystem(this.economy);
-    this.waveManager   = new WaveManager();
-    this.addArcherCost = 100;
-    this.gameOver      = false;
-    this.buildings     = { kaserne: 0, schmiede: 0, magierturm: 0 };
-    this.catapults     = [];
-    this.schmiede_mult = 1.0;
-    this.deathEffects  = [];
-    this.floatingTexts = [];
-    this.wallFlash     = 0;
-    this.wallShake     = 0;
-    this.waveAnnounce  = null;
-    this.waveAnnounceTimer = 0;
-    this.sidePanel.close();
-    this.addArcher();
-    this.addArcher();
-  }
-
-  // ── Spawning ─────────────────────────────────────────────────────────────────
+  // ── Spawning ──────────────────────────────────────────────────────────────────
   _spawnMonster(type, hpMult) {
-    // Stagger Y into formation tiers based on wave number
-    const tiers = Math.min(5, 2 + Math.floor(this.waveManager.wave / 3));
-    const tier  = Math.floor(Math.random() * tiers);
+    const diffMult = this.difficultyMult[this.difficulty] || 1;
+    const tiers  = Math.min(5, 2 + Math.floor(this.waveManager.wave / 3));
+    const tier   = Math.floor(Math.random() * tiers);
     const margin = 50;
-    const spacing = (this.playH - margin * 2) / (tiers - 1 || 1);
+    const spacing = (this.playH - margin * 2) / Math.max(1, tiers - 1);
     const baseY  = margin + tier * spacing;
     const jitter = (Math.random() - 0.5) * 20;
     const y = Math.max(30, Math.min(this.playH - 30, baseY + jitter));
-    this.monsters.push(new Monster(type, this.canvas.width + 30, y, hpMult));
+    this.monsters.push(new Monster(type, this.canvas.width + 30, y, hpMult * diffMult));
   }
 
-  // ── Update ───────────────────────────────────────────────────────────────────
+  // ── Update ────────────────────────────────────────────────────────────────────
   update(dt) {
-    if (this.gameOver) return;
+    if (this.state !== 'playing') return;
+    if (this.paused) return;
 
-    // Safety clamp
     dt = Math.min(dt, 0.05);
 
     this.economy.update(dt);
 
-    // Wave manager
     this.waveManager.update(
       dt,
       this.monsters,
@@ -208,11 +246,19 @@ class GameScene {
         const dead = this.wall.takeDamage(dmg);
         this.wallFlash = 0.25;
         this.wallShake = 0.3;
-        if (dead) { this.gameOver = true; return; }
+        if (dead) {
+          this.state = 'gameover';
+          const wave = this.waveManager.wave;
+          if (wave > this.highScore) {
+            this.highScore = wave;
+            localStorage.setItem('wallkeepers_highscore', String(wave));
+          }
+          return;
+        }
       }
     }
 
-    // Collect gold from dead monsters, spawn death effects
+    // Collect gold from dead monsters
     const alive = [];
     for (const m of this.monsters) {
       if (m.dead) {
@@ -236,7 +282,7 @@ class GameScene {
     for (const p of this.projectiles) p.update(dt);
     this.projectiles = this.projectiles.filter(p => !p.hit);
 
-    // Catapults — fire AoE every 5 seconds
+    // Catapults
     for (const cat of this.catapults) {
       cat.timer -= dt;
       if (cat.timer <= 0) {
@@ -246,12 +292,7 @@ class GameScene {
           if (!m.dead) { m.takeDamage(60); hits++; }
         }
         if (hits > 0) {
-          this.floatingTexts.push({
-            x: this.canvas.width * 0.6,
-            y: this.playH * 0.4,
-            text: '💥 Katapult!',
-            life: 1.2,
-          });
+          this.floatingTexts.push({ x: this.canvas.width * 0.6, y: this.playH * 0.4, text: '💥 Katapult!', life: 1.2 });
         }
       }
     }
@@ -267,7 +308,7 @@ class GameScene {
     if (this.waveAnnounceTimer > 0) this.waveAnnounceTimer -= dt;
   }
 
-  // ── Spells ───────────────────────────────────────────────────────────────────
+  // ── Spells ────────────────────────────────────────────────────────────────────
   castFireball() {
     if (!this.economy.spendMana(30)) return;
     let hits = 0;
@@ -290,12 +331,16 @@ class GameScene {
     }
   }
 
-  // ── Draw ─────────────────────────────────────────────────────────────────────
+  // ── Draw ──────────────────────────────────────────────────────────────────────
   draw() {
     const { ctx, canvas } = this;
 
-    // ── Background ───────────────────────────────────────────────────────────
-    // Sky gradient (dark blue → deep purple at horizon)
+    if (this.state === 'start') {
+      this._drawStartScreen(ctx, canvas);
+      return;
+    }
+
+    // ── Background ─────────────────────────────────────────────────────────────
     const skyGrad = ctx.createLinearGradient(0, 0, 0, this.playH);
     skyGrad.addColorStop(0,   '#080820');
     skyGrad.addColorStop(0.6, '#0e0e2a');
@@ -313,21 +358,19 @@ class GameScene {
       }
     }
 
-    // Ground strip (grass + dirt)
+    // Ground
     const groundY = this.playH - 18;
     ctx.fillStyle = '#1a2e0a';
     ctx.fillRect(0, groundY, canvas.width, 18);
     ctx.fillStyle = '#243810';
     ctx.fillRect(0, groundY, canvas.width, 5);
 
-    // Building area (left of wall) — darker night overlay
+    // Village (behind wall)
     ctx.fillStyle = 'rgba(0,0,0,0.40)';
     ctx.fillRect(0, 0, this.wallX, this.playH);
-
-    // Village silhouette behind wall
     this._drawVillage(ctx);
 
-    // ── Wall flash overlay ────────────────────────────────────────────────────
+    // ── Wall flash ─────────────────────────────────────────────────────────────
     if (this.wallFlash > 0) {
       ctx.save();
       ctx.globalAlpha = Math.min(0.55, this.wallFlash * 2.2);
@@ -336,7 +379,7 @@ class GameScene {
       ctx.restore();
     }
 
-    // ── Wall (with shake offset) ──────────────────────────────────────────────
+    // ── Wall (with shake) ──────────────────────────────────────────────────────
     const shakeOff = this.wallShake > 0
       ? Math.sin(this.wallShake * 80) * 3 * (this.wallShake / 0.3)
       : 0;
@@ -345,28 +388,24 @@ class GameScene {
     this.wall.draw(ctx);
     ctx.restore();
 
-    // ── Death effects ─────────────────────────────────────────────────────────
+    // ── Death effects ──────────────────────────────────────────────────────────
     for (const e of this.deathEffects) {
       ctx.save();
-      ctx.globalAlpha   = Math.max(0, e.alpha);
-      ctx.strokeStyle   = e.color;
-      ctx.lineWidth     = 2;
+      ctx.globalAlpha = Math.max(0, e.alpha);
+      ctx.strokeStyle = e.color;
+      ctx.lineWidth   = 2;
       ctx.beginPath();
       ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2);
       ctx.stroke();
       ctx.restore();
     }
 
-    // ── Monsters ──────────────────────────────────────────────────────────────
-    for (const m of this.monsters) m.draw(ctx);
-
-    // ── Soldiers ──────────────────────────────────────────────────────────────
-    for (const s of this.soldiers) s.draw(ctx);
-
-    // ── Projectiles ───────────────────────────────────────────────────────────
+    // ── Entities ───────────────────────────────────────────────────────────────
+    for (const m of this.monsters)    m.draw(ctx);
+    for (const s of this.soldiers)    s.draw(ctx);
     for (const p of this.projectiles) p.draw(ctx);
 
-    // ── Floating texts ────────────────────────────────────────────────────────
+    // ── Floating texts ─────────────────────────────────────────────────────────
     for (const t of this.floatingTexts) {
       ctx.save();
       ctx.globalAlpha = Math.min(1, t.life);
@@ -379,25 +418,134 @@ class GameScene {
       ctx.restore();
     }
 
-    // ── HUD ───────────────────────────────────────────────────────────────────
+    // ── HUD + menu ─────────────────────────────────────────────────────────────
     this._drawHUD(ctx, canvas);
-
-    // ── Menu bar ──────────────────────────────────────────────────────────────
     this._drawMenuBar(ctx, canvas);
-
-    // ── Side panel ────────────────────────────────────────────────────────────
     this.sidePanel.draw(ctx, canvas, this);
 
-    // ── Wave announcement ─────────────────────────────────────────────────────
+    // ── Wave announcement ──────────────────────────────────────────────────────
     if (this.waveAnnounceTimer > 0) this._drawWaveAnnounce(ctx, canvas);
 
-    // ── Game over ─────────────────────────────────────────────────────────────
-    if (this.gameOver) this._drawGameOver(ctx, canvas);
+    // ── Pause overlay ──────────────────────────────────────────────────────────
+    if (this.paused) this._drawPause(ctx, canvas);
+
+    // ── Game over ──────────────────────────────────────────────────────────────
+    if (this.state === 'gameover') this._drawGameOver(ctx, canvas);
   }
 
-  // ── Village silhouette ───────────────────────────────────────────────────────
+  // ── Start screen ──────────────────────────────────────────────────────────────
+  _drawStartScreen(ctx, canvas) {
+    // Background
+    const skyGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    skyGrad.addColorStop(0,   '#050514');
+    skyGrad.addColorStop(0.7, '#0e0e2a');
+    skyGrad.addColorStop(1,   '#1a0828');
+    ctx.fillStyle = skyGrad;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Stars
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    for (const [sx, sy] of STARS) {
+      ctx.beginPath();
+      ctx.arc(sx * (canvas.width / 1200), sy * 2, 1, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Title
+    ctx.textAlign = 'center';
+    ctx.shadowColor = '#e8c040';
+    ctx.shadowBlur  = 30;
+    ctx.fillStyle = '#e8c040';
+    ctx.font      = `bold ${Math.min(88, Math.floor(canvas.width / 12))}px sans-serif`;
+    ctx.fillText('WallKeepers', canvas.width / 2, canvas.height * 0.28);
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = '#8899bb';
+    ctx.font      = `${Math.min(18, Math.floor(canvas.width / 60))}px sans-serif`;
+    ctx.fillText('Verteidige deine Mauer gegen endlose Monster-Wellen!', canvas.width / 2, canvas.height * 0.28 + 46);
+
+    // Difficulty label
+    ctx.fillStyle = '#aabb cc';
+    ctx.font      = '14px sans-serif';
+    ctx.fillText('Schwierigkeit:', canvas.width / 2, canvas.height * 0.46);
+
+    // Difficulty buttons
+    const diffs = [
+      { id: 'easy',   label: 'Leicht',  color: '#4caf50', border: '#88ff88' },
+      { id: 'normal', label: 'Normal',  color: '#e8c030', border: '#ffee66' },
+      { id: 'hard',   label: 'Schwer',  color: '#e84030', border: '#ff8060' },
+    ];
+    const btnW = 120, btnH = 44;
+    const gap  = 18;
+    const totalW = diffs.length * btnW + (diffs.length - 1) * gap;
+    let bx = canvas.width / 2 - totalW / 2;
+    const by = canvas.height * 0.48;
+
+    this._startBtns = [];
+    for (const d of diffs) {
+      const active = this.difficulty === d.id;
+      ctx.fillStyle = active ? d.color : 'rgba(30,40,60,0.8)';
+      ctx.beginPath();
+      ctx.roundRect(bx, by, btnW, btnH, 8);
+      ctx.fill();
+      ctx.strokeStyle = active ? d.border : '#334466';
+      ctx.lineWidth = active ? 2.5 : 1.5;
+      ctx.beginPath();
+      ctx.roundRect(bx, by, btnW, btnH, 8);
+      ctx.stroke();
+      ctx.fillStyle = active ? '#fff' : '#667788';
+      ctx.font      = `bold 15px sans-serif`;
+      ctx.fillText(d.label, bx + btnW / 2, by + btnH / 2 + 5);
+      this._startBtns.push({ id: 'diff_' + d.id, x: bx, y: by, w: btnW, h: btnH });
+      bx += btnW + gap;
+    }
+
+    // Difficulty description
+    const descMap = {
+      easy:   '– Monster haben 30% weniger HP',
+      normal: '– Standardschwierigkeit',
+      hard:   '– Monster haben 40% mehr HP',
+    };
+    ctx.fillStyle = '#7788aa';
+    ctx.font      = '13px sans-serif';
+    ctx.fillText(descMap[this.difficulty], canvas.width / 2, by + btnH + 24);
+
+    // Spielen button
+    const sbW = 200, sbH = 58;
+    const sbX = canvas.width / 2 - sbW / 2;
+    const sbY = canvas.height * 0.66;
+    ctx.shadowColor = '#40c060';
+    ctx.shadowBlur  = 15;
+    ctx.fillStyle = 'rgba(20,100,50,0.95)';
+    ctx.beginPath();
+    ctx.roundRect(sbX, sbY, sbW, sbH, 12);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = '#40c060';
+    ctx.lineWidth   = 2;
+    ctx.beginPath();
+    ctx.roundRect(sbX, sbY, sbW, sbH, 12);
+    ctx.stroke();
+    ctx.fillStyle = '#fff';
+    ctx.font      = 'bold 24px sans-serif';
+    ctx.fillText('▶  Spielen', canvas.width / 2, sbY + sbH / 2 + 8);
+    this._startBtns.push({ id: 'play', x: sbX, y: sbY, w: sbW, h: sbH });
+
+    // Controls hint
+    ctx.fillStyle = '#445566';
+    ctx.font      = '12px sans-serif';
+    ctx.fillText('SPACE = Pause', canvas.width / 2, sbY + sbH + 28);
+
+    // High score
+    if (this.highScore > 0) {
+      ctx.fillStyle = '#8090a8';
+      ctx.font      = '13px sans-serif';
+      ctx.fillText(`Bestes Ergebnis: Welle ${this.highScore}`, canvas.width / 2, sbY + sbH + 50);
+    }
+  }
+
+  // ── Village silhouette ────────────────────────────────────────────────────────
   _drawVillage(ctx) {
-    // Rooftop silhouettes (dark rectangles = village skyline)
     const roofs = [
       { x: this.wallX - 70,  y: this.playH - 72, w: 48, h: 62, color: '#5a3e18', roof: '#3a2008' },
       { x: this.wallX - 148, y: this.playH - 98, w: 58, h: 88, color: '#4a3215', roof: '#2c1808' },
@@ -408,7 +556,6 @@ class GameScene {
       if (b.x + b.w < 0) continue;
       ctx.fillStyle = b.color;
       ctx.fillRect(b.x, b.y, b.w, b.h);
-      // Triangular roof
       ctx.fillStyle = b.roof;
       ctx.beginPath();
       ctx.moveTo(b.x - 4, b.y);
@@ -416,18 +563,16 @@ class GameScene {
       ctx.lineTo(b.x + b.w / 2, b.y - 20);
       ctx.closePath();
       ctx.fill();
-      // Door
       ctx.fillStyle = '#100800';
       ctx.fillRect(b.x + b.w / 2 - 7, b.y + b.h - 22, 14, 22);
-      // Lit window
       ctx.fillStyle = 'rgba(240,210,80,0.6)';
       ctx.fillRect(b.x + 8, b.y + 14, 10, 9);
     }
   }
 
-  // ── HUD ──────────────────────────────────────────────────────────────────────
+  // ── HUD ───────────────────────────────────────────────────────────────────────
   _drawHUD(ctx, canvas) {
-    // Gold box (top-left)
+    // Gold box
     ctx.fillStyle = 'rgba(0,0,0,0.65)';
     ctx.beginPath();
     ctx.roundRect(10, 10, 148, 38, 8);
@@ -437,15 +582,13 @@ class GameScene {
     ctx.textAlign = 'left';
     ctx.fillText(`💰  ${Math.floor(this.economy.gold)} g`, 20, 35);
 
-    // Mana bar (below gold)
-    const manaBarW = 128;
-    const manaBarH = 10;
+    // Mana bar
+    const manaBarW = 128, manaBarH = 10;
     const manaFill = this.economy.mana / this.economy.maxMana;
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
     ctx.beginPath();
     ctx.roundRect(14, 54, manaBarW, manaBarH, 4);
     ctx.fill();
-    // Mana gradient fill
     const manaGrad = ctx.createLinearGradient(14, 0, 14 + manaBarW, 0);
     manaGrad.addColorStop(0, '#2055cc');
     manaGrad.addColorStop(1, '#60aaff');
@@ -468,7 +611,6 @@ class GameScene {
     ctx.beginPath();
     ctx.roundRect(canvas.width - 160, 10, 150, 58, 8);
     ctx.fill();
-
     ctx.fillStyle = '#e8c040';
     ctx.font = 'bold 20px sans-serif';
     ctx.textAlign = 'right';
@@ -476,7 +618,6 @@ class GameScene {
 
     const nw = this.waveManager.timeToNextWave;
     if (nw > 0) {
-      // Wave timer countdown bar
       const barW = 130, barH = 6;
       const barX = canvas.width - 144;
       const barY = 44;
@@ -499,7 +640,7 @@ class GameScene {
     }
   }
 
-  // ── Menu bar ─────────────────────────────────────────────────────────────────
+  // ── Menu bar ──────────────────────────────────────────────────────────────────
   _drawMenuBar(ctx, canvas) {
     const barY = canvas.height - this.MENU_H;
 
@@ -520,8 +661,8 @@ class GameScene {
       { id: 'maschine', label: '⚙ Maschine'},
     ];
 
-    const btnW  = Math.min(145, Math.floor((canvas.width - 30) / items.length - 8));
-    const btnH  = this.MENU_H - 16;
+    const btnW   = Math.min(145, Math.floor((canvas.width - 30) / items.length - 8));
+    const btnH   = this.MENU_H - 16;
     const totalW = items.length * btnW + (items.length - 1) * 8;
     let bx = Math.floor((canvas.width - totalW) / 2);
     const by = barY + 8;
@@ -561,7 +702,6 @@ class GameScene {
     const bx = canvas.width / 2 - bw / 2;
     const by = this.playH / 2 - bh / 2 - 20;
 
-    // Glow effect
     ctx.shadowColor = '#ff4040';
     ctx.shadowBlur  = 20;
     ctx.fillStyle = 'rgba(160,25,25,0.92)';
@@ -586,14 +726,32 @@ class GameScene {
     ctx.restore();
   }
 
+  // ── Pause overlay ─────────────────────────────────────────────────────────────
+  _drawPause(ctx, canvas) {
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.textAlign   = 'center';
+    ctx.fillStyle   = '#e8e8ff';
+    ctx.font        = 'bold 52px sans-serif';
+    ctx.shadowColor = '#4080ff';
+    ctx.shadowBlur  = 20;
+    ctx.fillText('PAUSE', canvas.width / 2, canvas.height / 2 - 10);
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = '#778899';
+    ctx.font      = '16px sans-serif';
+    ctx.fillText('SPACE drücken um fortzufahren', canvas.width / 2, canvas.height / 2 + 28);
+  }
+
   // ── Game over ─────────────────────────────────────────────────────────────────
   _drawGameOver(ctx, canvas) {
-    ctx.fillStyle = 'rgba(0,0,0,0.80)';
+    ctx.fillStyle = 'rgba(0,0,0,0.82)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     const cx = canvas.width  / 2;
     const cy = canvas.height / 2;
-    const bw = 440, bh = 300;
+    const bw = 460, bh = 340;
 
     ctx.fillStyle = '#0e141e';
     ctx.beginPath();
@@ -605,24 +763,42 @@ class GameScene {
     ctx.roundRect(cx - bw/2, cy - bh/2, bw, bh, 16);
     ctx.stroke();
 
+    ctx.textAlign   = 'center';
     ctx.fillStyle   = '#e84030';
     ctx.font        = 'bold 52px sans-serif';
-    ctx.textAlign   = 'center';
     ctx.shadowColor = '#ff2020';
     ctx.shadowBlur  = 16;
-    ctx.fillText('GAME  OVER', cx, cy - 70);
+    ctx.fillText('GAME  OVER', cx, cy - 88);
     ctx.shadowBlur  = 0;
 
     ctx.fillStyle = '#e8c040';
-    ctx.font      = 'bold 26px sans-serif';
-    ctx.fillText(`Welle ${this.waveManager.wave} erreicht`, cx, cy - 16);
+    ctx.font      = 'bold 28px sans-serif';
+    ctx.fillText(`Welle ${this.waveManager.wave} erreicht`, cx, cy - 38);
 
-    ctx.fillStyle = '#889';
-    ctx.font      = '16px sans-serif';
-    ctx.fillText(`Gold übrig: ${Math.floor(this.economy.gold)} g`, cx, cy + 22);
+    // High score
+    const isNewRecord = this.waveManager.wave >= this.highScore;
+    if (isNewRecord && this.waveManager.wave > 0) {
+      ctx.fillStyle = '#ffd700';
+      ctx.font      = 'bold 16px sans-serif';
+      ctx.fillText('🏆 Neuer Rekord!', cx, cy - 8);
+    } else if (this.highScore > 0) {
+      ctx.fillStyle = '#667788';
+      ctx.font      = '14px sans-serif';
+      ctx.fillText(`Bestes Ergebnis: Welle ${this.highScore}`, cx, cy - 8);
+    }
 
-    // Play Again button
-    const pbx = cx - 100, pby = cy + 58, pbw = 200, pbh = 50;
+    ctx.fillStyle = '#778899';
+    ctx.font      = '15px sans-serif';
+    ctx.fillText(`Gold übrig: ${Math.floor(this.economy.gold)} g`, cx, cy + 20);
+
+    // Difficulty badge
+    const diffLabels = { easy: 'Leicht', normal: 'Normal', hard: 'Schwer' };
+    ctx.fillStyle = '#556677';
+    ctx.font      = '13px sans-serif';
+    ctx.fillText(`Schwierigkeit: ${diffLabels[this.difficulty]}`, cx, cy + 42);
+
+    // Nochmal spielen button
+    const pbx = cx - 110, pby = cy + 68, pbw = 220, pbh = 54;
     ctx.fillStyle   = 'rgba(30,120,60,0.9)';
     ctx.beginPath();
     ctx.roundRect(pbx, pby, pbw, pbh, 10);
