@@ -33,11 +33,16 @@ class GameScene {
     this.addArcherCost     = 100;
     this.gameOver          = false;
 
+    // Buildings & machines
+    this.buildings    = { kaserne: 0, schmiede: 0, magierturm: 0 };
+    this.catapults    = [];          // { timer }
+    this.schmiede_mult = 1.0;
+
     // Visual FX
     this.wallFlash         = 0;     // red flash timer
     this.deathEffects      = [];    // expanding rings
     this.floatingTexts     = [];    // +Xg popups
-    this.waveAnnounce      = null;  // "Wave N!" text
+    this.waveAnnounce      = null;  // "WELLE N" text
     this.waveAnnounceTimer = 0;
 
     // Start with 2 archers
@@ -147,6 +152,9 @@ class GameScene {
     this.waveManager  = new WaveManager();
     this.addArcherCost = 100;
     this.gameOver     = false;
+    this.buildings    = { kaserne: 0, schmiede: 0, magierturm: 0 };
+    this.catapults    = [];
+    this.schmiede_mult = 1.0;
     this.deathEffects = [];
     this.floatingTexts = [];
     this.sidePanel.close();
@@ -215,6 +223,26 @@ class GameScene {
     for (const p of this.projectiles) p.update(dt);
     this.projectiles = this.projectiles.filter(p => !p.hit);
 
+    // Catapults — fire AoE every 5 seconds
+    for (const cat of this.catapults) {
+      cat.timer -= dt;
+      if (cat.timer <= 0) {
+        cat.timer = 5;
+        let hits = 0;
+        for (const m of this.monsters) {
+          if (!m.dead) { m.takeDamage(60); hits++; }
+        }
+        if (hits > 0) {
+          this.floatingTexts.push({
+            x: this.canvas.width * 0.6,
+            y: this.playH * 0.4,
+            text: '💥 Katapult!',
+            life: 1.2,
+          });
+        }
+      }
+    }
+
     // Visual FX decay
     for (const e of this.deathEffects)   { e.r += 35 * dt; e.alpha -= 2.5 * dt; }
     for (const t of this.floatingTexts)  { t.y -= 22 * dt; t.life  -= dt; }
@@ -223,6 +251,32 @@ class GameScene {
 
     if (this.wallFlash > 0) this.wallFlash -= dt;
     if (this.waveAnnounceTimer > 0) this.waveAnnounceTimer -= dt;
+  }
+
+  // ── Spells ───────────────────────────────────────────────────────────────────
+  castFireball() {
+    if (!this.economy.spendMana(30)) return;
+    let hits = 0;
+    for (const m of this.monsters) {
+      if (!m.dead) { m.takeDamage(80); hits++; }
+    }
+    if (hits > 0) {
+      this.floatingTexts.push({ x: this.canvas.width / 2, y: this.playH * 0.35, text: '🔥 Feuerball!', life: 1.4 });
+    }
+  }
+
+  castEisblitz() {
+    if (!this.economy.spendMana(50)) return;
+    let hits = 0;
+    for (const m of this.monsters) {
+      if (!m.dead) {
+        if (m.applySlowed) m.applySlowed(5);
+        hits++;
+      }
+    }
+    if (hits > 0) {
+      this.floatingTexts.push({ x: this.canvas.width / 2, y: this.playH * 0.35, text: '❄ Eisblitz!', life: 1.4 });
+    }
   }
 
   // ── Draw ─────────────────────────────────────────────────────────────────────
