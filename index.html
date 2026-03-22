@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="de">
 <head>
 <meta charset="UTF-8"/>
@@ -7,10 +7,48 @@
 * { margin:0; padding:0; box-sizing:border-box; }
 body { background:#000; overflow:hidden; font-family:'Segoe UI',sans-serif; }
 canvas { display:block; }
+#debug-panel { position:fixed; top:8px; left:8px; z-index:9999; font-family:'Segoe UI',sans-serif; user-select:none; }
+#debug-toggle { background:rgba(0,0,0,0.75); color:#fff; border:1px solid #555; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:16px; line-height:1.4; }
+#debug-toggle:hover { background:rgba(40,40,40,0.9); }
+#debug-body { display:none; background:rgba(0,0,0,0.82); border:1px solid #555; border-radius:8px; margin-top:4px; padding:8px 10px 10px; width:196px; }
+#debug-body.open { display:block; }
+.dbg-section { color:#888; font-size:10px; text-transform:uppercase; margin:6px 0 3px; letter-spacing:0.5px; }
+.dbg-row { display:grid; grid-template-columns:1fr 1fr; gap:4px; margin-bottom:4px; }
+.dbg-row.full { grid-template-columns:1fr; }
+.dbg-btn { background:#2a2a2a; color:#ddd; border:1px solid #4a4a4a; border-radius:4px; padding:5px 0; font-size:11px; cursor:pointer; text-align:center; }
+.dbg-btn:hover { background:#3a3a3a; }
+.dbg-btn.active { background:#1a6e2e; border-color:#2eb050; color:#fff; }
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
+<div id="debug-panel">
+  <button id="debug-toggle" title="Debug/Cheat-Panel">&#x1F6E0;</button>
+  <div id="debug-body">
+    <div class="dbg-section">Geschwindigkeit</div>
+    <div class="dbg-row">
+      <button class="dbg-btn active" id="spd-1" onclick="setGameSpeed(1)">&#9654; 1x</button>
+      <button class="dbg-btn" id="spd-2" onclick="setGameSpeed(2)">&#9193; 2x</button>
+    </div>
+    <div class="dbg-row full">
+      <button class="dbg-btn" id="spd-5" onclick="setGameSpeed(5)">&#9193;&#9193; 5x</button>
+    </div>
+    <div class="dbg-section">Gold</div>
+    <div class="dbg-row">
+      <button class="dbg-btn" onclick="debugGold(500)">&#x1F4B0; +500</button>
+      <button class="dbg-btn" onclick="debugGold(9999)">&#x1F4B0; +9999</button>
+    </div>
+    <div class="dbg-section">Monster</div>
+    <div class="dbg-row">
+      <button class="dbg-btn" onclick="debugSpawn5()">&#x1F47E; Spawn 5</button>
+      <button class="dbg-btn" onclick="debugSpawnWave()">&#x1F47E; Welle</button>
+    </div>
+    <div class="dbg-section">Welle</div>
+    <div class="dbg-row full">
+      <button class="dbg-btn" onclick="debugSkipWave()">&#x23ED; N&#xE4;chste Welle</button>
+    </div>
+  </div>
+</div>
 <script>
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
@@ -1073,8 +1111,47 @@ function draw(){
 }
 
 // ─── LOOP ─────────────────────────────────────────────────────────────────
+
+// === DEBUG PANEL ===
+let gameSpeed = 1;
+document.getElementById('debug-toggle').addEventListener('click', function() {
+  document.getElementById('debug-body').classList.toggle('open');
+});
+function setGameSpeed(s) {
+  gameSpeed = s;
+  [1,2,5].forEach(function(v) {
+    var el = document.getElementById('spd-'+v);
+    if(el) el.classList.toggle('active', v===s);
+  });
+}
+function debugGold(amount) {
+  if(gs.screen !== 'game') return;
+  gs.gold = Math.min(goldCap(), gs.gold + amount);
+}
+function debugSpawn5() {
+  if(gs.screen !== 'game') return;
+  var types = gs.wave >= 5 ? ['goblin','orc'] : ['goblin'];
+  for(var i=0;i<5;i++){
+    var type = types[Math.floor(Math.random()*types.length)];
+    var x = 20 + Math.random()*(W-40);
+    monsters.push(new Monster(type, x, 1, 1));
+  }
+}
+function debugSpawnWave() {
+  if(gs.screen !== 'game') return;
+  var q = buildSpawnQueue(Math.max(gs.wave,1));
+  q.forEach(function(s){ monsters.push(new Monster(s.type, s.x, s.hpMult, s.speedMult||1)); });
+}
+function debugSkipWave() {
+  if(gs.screen !== 'game') return;
+  gs.spawning = false;
+  gs.spawnQueue = [];
+  monsters = [];
+  gs.waveTimer = 0;
+  startWave();
+}
 let last=0;
-function loop(ts){ const dt=(ts-last)/1000; last=ts; update(dt); draw(); requestAnimationFrame(loop); }
+function loop(ts){ const dt=(ts-last)/1000; last=ts; for(var _i=0;_i<gameSpeed;_i++) update(dt); draw(); requestAnimationFrame(loop); }
 
 initLayout();
 requestAnimationFrame(ts=>{ last=ts; requestAnimationFrame(loop); });
