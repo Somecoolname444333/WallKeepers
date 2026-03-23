@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="de">
 <head>
 <meta charset="UTF-8"/>
@@ -663,12 +663,6 @@ function onMonsterHit(m){
     gs.gold=Math.min(goldCap(),gs.gold+m.gold);
     addParticle(m.x,m.y,m.col);
     gs.kills++;
-    const scoreMap={goblin:10,orc:25,troll:50};
-    gs.score+=(scoreMap[m.type]||10);
-    const scoreMap={goblin:10,orc:25,troll:50};
-    gs.score+=(scoreMap[m.type]||10);
-    const scoreMap={goblin:10,orc:25,troll:50};
-    gs.score+=(scoreMap[m.type]||10);
     const scoreMap={goblin:10,orc:25,troll:50};
     gs.score+=(scoreMap[m.type]||10);
     for(let i=0;i<5;i++){
