@@ -67,7 +67,7 @@ function initLayout() {
   PANEL_W = Math.floor(W * PANEL_W_RATIO);
   wallX = 0;
   wallW = W;
-  wallH = 40;
+  wallH = 56;
   wallY = Math.floor((H - MENU_H) * 0.70);
   if (wall) { wall.x = wallX; wall.y = wallY; wall.w = wallW; wall.h = wallH; }
   repositionSoldiers();
@@ -130,74 +130,39 @@ const wall = { x:0, y:0, w:0, h:40, hp:500, maxHp:500,
   reinforce(a){ this.maxHp+=a; this.hp+=a; },
   get pct(){ return this.hp/this.maxHp; },
   draw(){
-    // ── TOP-DOWN WALL: thick stone band seen from above ──
-
-    // Drop shadow toward enemy side (above)
-    ctx.fillStyle = 'rgba(0,0,0,0.45)';
-    ctx.fillRect(this.x, this.y - 4, this.w, this.h + 8);
-
-    // Main wall body — mid-grey stone
-    const wallGrad = ctx.createLinearGradient(0, this.y, 0, this.y + this.h);
-    wallGrad.addColorStop(0, '#8a8270');
-    wallGrad.addColorStop(0.5, '#726a58');
-    wallGrad.addColorStop(1, '#5e5648');
-    ctx.fillStyle = wallGrad;
-    ctx.fillRect(this.x, this.y, this.w, this.h);
-
-    // Cobblestone texture: two staggered rows of rectangles viewed from above
-    const stW = 32, stH = 8;
-    for(let row = 0; row < 4; row++){
-      const rowY = this.y + 1 + row * (stH + 1);
-      const offset = (row % 2) * (stW / 2);
-      for(let sx = -stW + offset; sx < this.w; sx += stW){
-        // stone base
-        ctx.fillStyle = row % 2 === 0 ? '#7a7260' : '#706858';
-        ctx.fillRect(sx + 1, rowY, stW - 2, stH);
-        // top highlight
-        ctx.fillStyle = 'rgba(255,255,255,0.09)';
-        ctx.fillRect(sx + 1, rowY, stW - 2, 2);
-        // left shadow
-        ctx.fillStyle = 'rgba(0,0,0,0.15)';
-        ctx.fillRect(sx + 1, rowY, 1, stH);
+    const x = 0, y = this.y, w = this.w, h = this.h;
+    ctx.fillStyle = '#8B7355'; ctx.fillRect(x, y, w, h);
+    const brickW = 48, brickH = 14;
+    for (let row = 0; row < Math.ceil(h / brickH); row++) {
+      const offset = (row % 2) * (brickW / 2);
+      for (let col = -1; col < Math.ceil(w / brickW) + 1; col++) {
+        const bx = col * brickW + offset;
+        const by = y + row * brickH;
+        ctx.fillStyle = row % 2 === 0 ? '#7A6548' : '#6e5a3e';
+        ctx.fillRect(bx + 1, by + 1, brickW - 2, brickH - 2);
+        ctx.strokeStyle = '#5C4A32'; ctx.lineWidth = 1.5;
+        ctx.strokeRect(bx + 1, by + 1, brickW - 2, brickH - 2);
       }
     }
-
-    // Mortar lines (vertical, darker gaps between stones)
-    ctx.strokeStyle = '#2e2820'; ctx.lineWidth = 1.5;
-    for(let bx = 0; bx < this.w; bx += stW){
-      ctx.beginPath(); ctx.moveTo(bx, this.y); ctx.lineTo(bx, this.y + this.h); ctx.stroke();
+    const merlonW = 18, merlonD = 12, mSpacing = 30;
+    ctx.fillStyle = '#9B8465';
+    for (let bx = 4; bx < w - merlonW; bx += merlonW + mSpacing) {
+      ctx.fillRect(bx, y - merlonD, merlonW, merlonD);
+      ctx.strokeStyle = '#5C4A32'; ctx.lineWidth = 1;
+      ctx.strokeRect(bx + 1, y - merlonD + 1, merlonW - 2, merlonD - 2);
+      ctx.fillStyle = 'rgba(255,255,255,0.08)';
+      ctx.fillRect(bx + 1, y - merlonD + 1, merlonW - 2, 2);
+      ctx.fillStyle = '#9B8465';
     }
-    // Horizontal mortar line (middle row divider)
-    ctx.beginPath(); ctx.moveTo(0, this.y + stH + 1); ctx.lineTo(this.w, this.y + stH + 1); ctx.stroke();
-
-    // Crenellations at enemy-facing edge (top of wall band) — seen from above as square protrusions
-    ctx.fillStyle = '#9a9280';
-    for(let cx = 6; cx < this.w; cx += 26){
-      ctx.fillRect(cx, this.y - 9, 14, 10);
-      // mortar between crenels
-      ctx.strokeStyle = '#3a3428'; ctx.lineWidth = 1;
-      ctx.strokeRect(cx, this.y - 9, 14, 10);
-      // top highlight on crenel
-      ctx.fillStyle = 'rgba(255,255,255,0.12)';
-      ctx.fillRect(cx, this.y - 9, 14, 2);
-      ctx.fillStyle = '#9a9280';
-    }
-
-    // Bright top edge (sunlit top face of wall)
-    ctx.fillStyle = 'rgba(255,255,255,0.12)';
-    ctx.fillRect(this.x, this.y, this.w, 2);
-    // Dark bottom edge (shadow cast downward)
-    ctx.fillStyle = 'rgba(0,0,0,0.35)';
-    ctx.fillRect(this.x, this.y + this.h - 2, this.w, 3);
-
-    // HP bar
-    const bw=180, bh=13, bx=this.w/2-bw/2, by=this.y+this.h+8;
-    ctx.fillStyle='#111'; ctx.beginPath(); ctx.roundRect(bx-1,by-1,bw+2,bh+2,3); ctx.fill();
+    ctx.strokeStyle = '#4A3828'; ctx.lineWidth = 2; ctx.strokeRect(x, y, w, h);
+    ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(x, y + h - 3, w, 3);
+    const bw=180, bh=13, barX=w/2-90, barY=y+h+8;
+    ctx.fillStyle='#111'; ctx.beginPath(); ctx.roundRect(barX-1,barY-1,bw+2,bh+2,3); ctx.fill();
     const pc=this.pct, hc=pc>0.55?'#4caf50':pc>0.28?'#ff9800':'#f44336';
-    ctx.fillStyle=hc; ctx.beginPath(); ctx.roundRect(bx,by,bw*pc,bh,2); ctx.fill();
-    ctx.strokeStyle='#666'; ctx.lineWidth=1; ctx.beginPath(); ctx.roundRect(bx,by,bw,bh,2); ctx.stroke();
+    ctx.fillStyle=hc; ctx.beginPath(); ctx.roundRect(barX,barY,bw*pc,bh,2); ctx.fill();
+    ctx.strokeStyle='#666'; ctx.lineWidth=1; ctx.beginPath(); ctx.roundRect(barX,barY,bw,bh,2); ctx.stroke();
     ctx.fillStyle='#fff'; ctx.font='bold 9px monospace'; ctx.textAlign='center';
-    ctx.fillText(`WALL  ${Math.ceil(this.hp)} / ${this.maxHp}`,bx+bw/2,by+bh-2);
+    ctx.fillText(`WALL  ${Math.ceil(this.hp)} / ${this.maxHp}`,barX+bw/2,barY+bh-2);
   }
 };
 
@@ -521,7 +486,7 @@ let baseDmg=15, baseFireRate=1.0;
 function repositionSoldiers(){
   if(!soldiers.length) return;
   const spacing = W / (soldiers.length + 1);
-  soldiers.forEach((s,i)=>{ s.x = spacing*(i+1); s.y = wall.y - 22; s.homeX=s.x; s.homeY=s.y; });
+  soldiers.forEach((s,i)=>{ s.x = spacing*(i+1); s.y = wall.y + wall.h / 2; s.homeX=s.x; s.homeY=s.y; });
   soldiers.forEach(s=>{ s.buffed=false; s.cooldownMult=1; });
   soldiers.forEach((s,i)=>{
     if(s.type==='swordsman'){
@@ -1061,7 +1026,7 @@ function update(dt){
 
   gs.mana=Math.min(gs.manaMax,gs.mana+gs.manaRegen*dt);
 
-  gs.waveTimer-=dt;
+  gs.waveTimer = Math.max(0, gs.waveTimer - dt);
   if(gs.waveTimer<=0&&!gs.spawning){ gs.waveTimer=gs.waveDuration; startWave(); }
 
   if(gs.announcing>0) gs.announcing-=dt;
@@ -1119,6 +1084,40 @@ function update(dt){
 }
 
 // ─── DRAW ─────────────────────────────────────────────────────────────────
+
+function drawWallMachines() {
+  if (!gs.machines) return;
+  const machines = [];
+  if (gs.machines.ballista) machines.push({type:'ballista'});
+  if (gs.machines.katapult) machines.push({type:'katapult'});
+  if (machines.length === 0) return;
+  const spacing = W / (machines.length + 1);
+  machines.forEach((m, i) => {
+    const mx = spacing * (i + 1);
+    const my = wall.y + wall.h / 2;
+    if (m.type === 'ballista') {
+      ctx.save(); ctx.translate(mx, my);
+      ctx.fillStyle = '#5C3A1E';
+      ctx.fillRect(-20, -4, 40, 8); ctx.fillRect(-4, -20, 8, 30);
+      ctx.fillStyle = '#AAA';
+      ctx.beginPath(); ctx.moveTo(0,-22); ctx.lineTo(-4,-16); ctx.lineTo(4,-16); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#3A2010';
+      [-14, 14].forEach(ox => { ctx.beginPath(); ctx.arc(ox, 6, 5, 0, Math.PI*2); ctx.fill(); });
+      ctx.restore();
+    } else if (m.type === 'katapult') {
+      ctx.save(); ctx.translate(mx, my);
+      ctx.fillStyle = '#5C3A1E'; ctx.fillRect(-16, -10, 32, 20);
+      ctx.strokeStyle = '#3A2010'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(0, 6); ctx.lineTo(0, -22); ctx.stroke();
+      ctx.fillStyle = '#7A5030'; ctx.beginPath(); ctx.arc(0, -24, 7, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#2A1A08';
+      [[-12,10],[12,10],[-12,-6],[12,-6]].forEach(([ox,oy]) => { ctx.beginPath(); ctx.arc(ox,oy,5,0,Math.PI*2); ctx.fill(); });
+      ctx.restore();
+    }
+    ctx.fillStyle = '#FFD700'; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(m.type === 'ballista' ? 'Balliste' : 'Katapult', mx, wall.y + wall.h + 14);
+  });
+}
 function draw(){
   ctx.clearRect(0,0,W,H);
   if(gs.screen==='start'){ startButtons=[]; drawStartScreen(); return; }
@@ -1133,6 +1132,7 @@ function draw(){
   for(const m of monsters) m.draw();
 
   wall.draw();
+  drawWallMachines();
 
   for(const s of soldiers) s.draw();
 
