@@ -57,7 +57,7 @@ function resize() { canvas.width = window.innerWidth; canvas.height = window.inn
 window.addEventListener('resize', () => { resize(); initLayout(); });
 resize();
 
-// --- LAYOUT ----------------------------------------------------------------
+// ─── LAYOUT ────────────────────────────────────────────────────────────────
 const MENU_H = 54;
 const PANEL_W_RATIO = 0.2;
 let W, H, PANEL_W, wallX, wallY, wallW, wallH;
@@ -73,7 +73,7 @@ function initLayout() {
   repositionSoldiers();
 }
 
-// --- ROUNDRECT POLYFILL ----------------------------------------------------
+// ─── ROUNDRECT POLYFILL ────────────────────────────────────────────────────
 if (!CanvasRenderingContext2D.prototype.roundRect) {
   CanvasRenderingContext2D.prototype.roundRect = function(x,y,w,h,r) {
     r = Math.min(r, w/2, h/2);
@@ -86,7 +86,7 @@ if (!CanvasRenderingContext2D.prototype.roundRect) {
   };
 }
 
-// --- GAME STATE -----------------------------------------------------------
+// ─── GAME STATE ───────────────────────────────────────────────────────────
 let gs = {};
 function resetGS() {
   gs = {
@@ -126,7 +126,7 @@ function resetGS() {
 }
 resetGS();
 
-// --- WALL (HORIZONTAL) ----------------------------------------------------
+// ─── WALL (HORIZONTAL) ────────────────────────────────────────────────────
 const wall = { x:0, y:0, w:0, h:40, hp:500, maxHp:500,
   takeDamage(d){ this.hp=Math.max(0,this.hp-d); if(this.hp===0) gameOver(); },
   repair(a){ this.hp=Math.min(this.maxHp,this.hp+a); },
@@ -190,7 +190,7 @@ const wall = { x:0, y:0, w:0, h:40, hp:500, maxHp:500,
   }
 };
 
-// --- MONSTER --------------------------------------------------------------
+// ─── MONSTER ──────────────────────────────────────────────────────────────
 // === CRAFTPIX MONSTER SPRITE SHEETS ===
 const SPRITE_SHEETS = {
   goblin: { fw:61,  fh:36, frames:18, img:null },
@@ -283,7 +283,7 @@ class Monster {
   }
 }
 
-// --- SOLDIER --------------------------------------------------------------
+// ─── SOLDIER ──────────────────────────────────────────────────────────────
 class Soldier {
   constructor(x,y,type='archer'){ this.x=x; this.y=y; this.type=type; this.angle=-Math.PI/2; this.atkTimer=0; this.target=null; this.state='idle'; this.chargeTarget=null; this.dead=false; this.homeX=x; this.homeY=y; this.fightTarget=null; this.swordCooldown=0; this.buffed=false; this.cooldownMult=1; }
   get damage(){ return baseDmg + (gs.buildings.schmiede?baseDmg*.1:0); }
@@ -464,14 +464,14 @@ class Soldier {
 
     if(this.type==='spear'&&this.state==='idle'){
       ctx.font='14px serif';ctx.textAlign='center';ctx.fillStyle='#ffd700';
-      ctx.fillText('?',0,-r-6);
+      ctx.fillText('⚡',0,-r-6);
     }
 
     ctx.restore();
   }
 }
 
-// --- PROJECTILE -----------------------------------------------------------
+// ─── PROJECTILE ───────────────────────────────────────────────────────────
 class Projectile {
   constructor(x,y,target,dmg){ this.x=x;this.y=y;this.target=target;this.dmg=dmg;this.spd=400;this.hit=false;this.trail=[]; const _dx=target.x-x,_dy=target.y-y,_d=Math.hypot(_dx,_dy)||1; this.vx=_dx/_d; this.vy=_dy/_d; }
   update(dt){
@@ -494,15 +494,15 @@ class Projectile {
   }
 }
 
-// --- FLOATING TEXT --------------------------------------------------------
+// ─── FLOATING TEXT ────────────────────────────────────────────────────────
 const floats=[];
 function addFloat(x,y,text,col='#ffd700'){ floats.push({x,y,text,col,alpha:1,vy:-40}); }
 
-// --- PARTICLE -------------------------------------------------------------
+// ─── PARTICLE ─────────────────────────────────────────────────────────────
 const particles=[];
 function addParticle(x,y,col){ particles.push({x,y,col,r:0,maxR:25,alpha:1}); }
 
-// --- ARRAYS ---------------------------------------------------------------
+// ─── ARRAYS ───────────────────────────────────────────────────────────────
 let monsters=[], soldiers=[], projectiles=[];
 const deathParticles=[], shotLines=[];
 let baseDmg=15, baseFireRate=1.0;
@@ -531,7 +531,37 @@ function initSoldiers(){
   addSoldier('archer');
 }
 
-// --- WAVE SPAWNING --------------------------------------------------------
+// ─── WAVE SPAWNING ────────────────────────────────────────────────────────
+function computeWavePreview(waveNum){
+  const count=Math.floor(5*Math.pow(1.3,waveNum-1));
+  let g=0,o=0,t=0;
+  if(waveNum>=15){g=Math.round(count*0.20);o=Math.round(count*0.35);t=count-g-o;}
+  else if(waveNum>=10){g=Math.round(count*0.35);o=Math.round(count*0.40);t=count-g-o;}
+  else if(waveNum>=5){g=Math.round(count*0.5);o=count-g;}
+  else{g=count;}
+  return{wave:waveNum,goblins:g,orcs:o,trolls:t,total:count};
+}
+
+function computeWavePreview(waveNum){
+  const count=Math.floor(5*Math.pow(1.3,waveNum-1));
+  let g=0,o=0,t=0;
+  if(waveNum>=15){g=Math.round(count*0.20);o=Math.round(count*0.35);t=count-g-o;}
+  else if(waveNum>=10){g=Math.round(count*0.35);o=Math.round(count*0.40);t=count-g-o;}
+  else if(waveNum>=5){g=Math.round(count*0.5);o=count-g;}
+  else{g=count;}
+  return{wave:waveNum,goblins:g,orcs:o,trolls:t,total:count};
+}
+
+function computeWavePreview(waveNum){
+  const count=Math.floor(5*Math.pow(1.3,waveNum-1));
+  let g=0,o=0,t=0;
+  if(waveNum>=15){g=Math.round(count*0.20);o=Math.round(count*0.35);t=count-g-o;}
+  else if(waveNum>=10){g=Math.round(count*0.35);o=Math.round(count*0.40);t=count-g-o;}
+  else if(waveNum>=5){g=Math.round(count*0.5);o=count-g;}
+  else{g=count;}
+  return{wave:waveNum,goblins:g,orcs:o,trolls:t,total:count};
+}
+
 function computeWavePreview(waveNum){
   const count=Math.floor(5*Math.pow(1.3,waveNum-1));
   let g=0,o=0,t=0;
@@ -573,7 +603,7 @@ function startWave(){
   gs.waveComposition=wc;
 }
 
-// --- MACHINES -------------------------------------------------------------
+// ─── MACHINES ─────────────────────────────────────────────────────────────
 function updateMachines(dt){
   if(gs.machines.katapult){
     gs.machineTimers.katapult-=dt;
@@ -594,13 +624,19 @@ function updateMachines(dt){
   }
 }
 
-// --- ON MONSTER HIT / DEATH -----------------------------------------------
+// ─── ON MONSTER HIT / DEATH ───────────────────────────────────────────────
 function onMonsterHit(m){
   if(m.dead){
     addFloat(m.x,m.y,`+${m.gold}g`,'#ffd700');
     gs.gold=Math.min(goldCap(),gs.gold+m.gold);
     addParticle(m.x,m.y,m.col);
     gs.kills++;
+    const scoreMap={goblin:10,orc:25,troll:50};
+    gs.score+=(scoreMap[m.type]||10);
+    const scoreMap={goblin:10,orc:25,troll:50};
+    gs.score+=(scoreMap[m.type]||10);
+    const scoreMap={goblin:10,orc:25,troll:50};
+    gs.score+=(scoreMap[m.type]||10);
     const scoreMap={goblin:10,orc:25,troll:50};
     gs.score+=(scoreMap[m.type]||10);
     for(let i=0;i<5;i++){
@@ -612,14 +648,14 @@ function onMonsterHit(m){
 
 function goldCap(){ return gs.buildings.lagerhaus?14999:9999; }
 
-// --- SPELLS ---------------------------------------------------------------
+// ─── SPELLS ───────────────────────────────────────────────────────────────
 function castSpell(name){
   if(name==='feuerball'&&gs.mana>=30){ gs.mana-=30; monsters.filter(m=>!m.dead).forEach(m=>{m.takeDmg(80);onMonsterHit(m);}); gs.spellEffects.push({type:'fire',timer:0.5}); }
   if(name==='eisblitz'&&gs.mana>=50){ gs.mana-=50; monsters.filter(m=>!m.dead).forEach(m=>{m.slowed=true;m.slowTimer=5;}); gs.spellEffects.push({type:'ice',timer:0.5}); }
   if(name==='blitz'&&gs.mana>=40){ gs.mana-=40; const alive=monsters.filter(m=>!m.dead); if(alive.length){let t=alive.reduce((a,b)=>b.hp>a.hp?b:a);t.takeDmg(120);onMonsterHit(t);} gs.spellEffects.push({type:'lightning',timer:0.3}); }
 }
 
-// --- PANEL UI -------------------------------------------------------------
+// ─── PANEL UI ─────────────────────────────────────────────────────────────
 const panelButtons=[];
 let hoveredBtn=null;
 
@@ -633,7 +669,7 @@ function drawButton(x,y,w,h,label,cost,canAfford,isBuilt){
   ctx.fillText(label,x+10,y+h/2+5);
   if(cost!==null){
     ctx.fillStyle=canAfford?'#ffd700':'#888'; ctx.textAlign='right'; ctx.font='bold 12px monospace';
-    ctx.fillText(isBuilt?'?':cost+'g',x+w-8,y+h/2+5);
+    ctx.fillText(isBuilt?'✅':cost+'g',x+w-8,y+h/2+5);
   }
   panelButtons.push({x,y,w,h,label,cost,canAfford,isBuilt});
 }
@@ -645,30 +681,30 @@ function drawPanel(){
   ctx.strokeStyle='#2a4a8a'; ctx.lineWidth=1; ctx.strokeRect(px,py,pw,ph);
   panelButtons.length=0;
   let cy=16;
-  const titles={upgrades:'?? Upgrades',buildings:'??? Geb�ude',wall:'?? Mauer',spells:'? Zauber',machines:'?? Maschine'};
+  const titles={upgrades:'⚔️ Upgrades',buildings:'🏗️ Gebäude',wall:'🏰 Mauer',spells:'✨ Zauber',machines:'⚙️ Maschine'};
   ctx.fillStyle='#ffd700'; ctx.font='bold 16px Segoe UI'; ctx.textAlign='left';
   ctx.fillText(titles[gs.activePanel],12,cy+14); cy+=36;
   const bw=pw-20,bh=40,bx=10;
 
   if(gs.activePanel==='upgrades'){
     const dmgCost=Math.round(gs.upgrades.dmgCost*Math.pow(1.5,gs.upgrades.dmgPurchases));
-    drawButton(bx,cy,bw,bh,`?? Schaden +5  (jetzt ${baseDmg})`,dmgCost,gs.gold>=dmgCost,false); cy+=bh+8;
+    drawButton(bx,cy,bw,bh,`🏹 Schaden +5  (jetzt ${baseDmg})`,dmgCost,gs.gold>=dmgCost,false); cy+=bh+8;
     const spdCost=Math.round(gs.upgrades.speedCost*Math.pow(1.5,gs.upgrades.speedPurchases));
-    drawButton(bx,cy,bw,bh,`? Tempo +0.2/s  (${baseFireRate.toFixed(1)}/s)`,spdCost,gs.gold>=spdCost,false); cy+=bh+8;
+    drawButton(bx,cy,bw,bh,`⚡ Tempo +0.2/s  (${baseFireRate.toFixed(1)}/s)`,spdCost,gs.gold>=spdCost,false); cy+=bh+8;
     const aCost=Math.round(gs.upgrades.archerCost*Math.pow(2,soldiers.filter(s=>s.type==='archer').length-2));
-    drawButton(bx,cy,bw,bh,`? Bogensch�tze (${soldiers.filter(s=>s.type==='archer').length})`,aCost,gs.gold>=aCost,false); cy+=bh+8;
+    drawButton(bx,cy,bw,bh,`➕ Bogenschütze (${soldiers.filter(s=>s.type==='archer').length})`,aCost,gs.gold>=aCost,false); cy+=bh+8;
     const sCost=Math.round(150*Math.pow(2,soldiers.filter(s=>s.type==='spear').length));
-    drawButton(bx,cy,bw,bh,`??? Lanzenreiter (${soldiers.filter(s=>s.type==='spear').length})`,sCost,gs.gold>=sCost,false); cy+=bh+8;
+    drawButton(bx,cy,bw,bh,`🗡️ Lanzenreiter (${soldiers.filter(s=>s.type==='spear').length})`,sCost,gs.gold>=sCost,false); cy+=bh+8;
   }
   else if(gs.activePanel==='buildings'){
-    const bs=[{id:'kaserne',label:'Kaserne � +1 Krieger-Slot',cost:150},{id:'schmiede',label:'Schmiede � +10% Schaden',cost:200},{id:'magierturm',label:'Magierturm � +2 Mana/s',cost:300},{id:'lagerhaus',label:'Lagerhaus � +500 Gold-Limit',cost:120},{id:'wachturm',label:'Wachturm � +1 Bogensch�tze/Welle',cost:80},{id:'swordsman',label:'Schwertk�mpfer � feuert Bogensch�tzen an + t�tet Wandangreifer',cost:120}];
+    const bs=[{id:'kaserne',label:'Kaserne — +1 Krieger-Slot',cost:150},{id:'schmiede',label:'Schmiede — +10% Schaden',cost:200},{id:'magierturm',label:'Magierturm — +2 Mana/s',cost:300},{id:'lagerhaus',label:'Lagerhaus — +500 Gold-Limit',cost:120},{id:'wachturm',label:'Wachturm — +1 Bogenschütze/Welle',cost:80},{id:'swordsman',label:'Schwertkämpfer — feuert Bogenschützen an + tötet Wandangreifer',cost:120}];
     for(const b of bs){ drawButton(bx,cy,bw,bh,b.label,b.cost,gs.gold>=b.cost,gs.buildings[b.id]); cy+=bh+8; }
   }
   else if(gs.activePanel==='wall'){
     ctx.fillStyle='#aaa'; ctx.font='13px Segoe UI'; ctx.textAlign='left';
     ctx.fillText(`HP: ${Math.ceil(wall.hp)} / ${wall.maxHp}`,bx,cy); cy+=24;
-    drawButton(bx,cy,bw,bh,'??? Verst�rken +100 HP',40,gs.gold>=40,false); cy+=bh+8;
-    drawButton(bx,cy,bw,bh,'?? Reparieren +50 HP',20,gs.gold>=20&&wall.hp<wall.maxHp,false); cy+=bh+8;
+    drawButton(bx,cy,bw,bh,'🛡️ Verstärken +100 HP',40,gs.gold>=40,false); cy+=bh+8;
+    drawButton(bx,cy,bw,bh,'🔨 Reparieren +50 HP',20,gs.gold>=20&&wall.hp<wall.maxHp,false); cy+=bh+8;
   }
   else if(gs.activePanel==='spells'){
     const mPct=gs.mana/gs.manaMax;
@@ -678,18 +714,18 @@ function drawPanel(){
     ctx.strokeStyle='#2a4aaa'; ctx.lineWidth=1; ctx.beginPath(); ctx.roundRect(mx,my,mw,mh,4); ctx.stroke();
     ctx.fillStyle='#fff'; ctx.font='11px monospace'; ctx.textAlign='center';
     ctx.fillText(`Mana: ${Math.floor(gs.mana)} / ${gs.manaMax}`,mx+mw/2,my+13); cy+=mh+12;
-    drawButton(bx,cy,bw,bh,'?? Feuerball � 80 Schaden alle',30,gs.mana>=30,false); cy+=bh+8;
-    drawButton(bx,cy,bw,bh,'?? Eisblitz � Verlangsamt 5s',50,gs.mana>=50,false); cy+=bh+8;
-    drawButton(bx,cy,bw,bh,'? Blitz � 120 Schaden st�rksten',40,gs.mana>=40,false); cy+=bh+8;
+    drawButton(bx,cy,bw,bh,'🔥 Feuerball — 80 Schaden alle',30,gs.mana>=30,false); cy+=bh+8;
+    drawButton(bx,cy,bw,bh,'❄️ Eisblitz — Verlangsamt 5s',50,gs.mana>=50,false); cy+=bh+8;
+    drawButton(bx,cy,bw,bh,'⚡ Blitz — 120 Schaden stärksten',40,gs.mana>=40,false); cy+=bh+8;
   }
   else if(gs.activePanel==='machines'){
-    const ms=[{id:'katapult',label:'Katapult � 60 AoE alle 5s',cost:250},{id:'ballista',label:'Ballista � 120 Schaden alle 3s',cost:350},{id:'oelkessel',label:'�l-Kessel � Verlangsamt Angreifer',cost:180}];
+    const ms=[{id:'katapult',label:'Katapult — 60 AoE alle 5s',cost:250},{id:'ballista',label:'Ballista — 120 Schaden alle 3s',cost:350},{id:'oelkessel',label:'Öl-Kessel — Verlangsamt Angreifer',cost:180}];
     for(const m of ms){ drawButton(bx,cy,bw,bh,m.label,m.cost,gs.gold>=m.cost,gs.machines[m.id]); cy+=bh+8; }
   }
 }
 
-// --- MENU BAR -------------------------------------------------------------
-const MENUS=[{id:'upgrades',label:'?? Upgrades'},{id:'buildings',label:'??? Geb�ude'},{id:'wall',label:'?? Mauer'},{id:'spells',label:'? Zauber'},{id:'machines',label:'?? Maschine'}];
+// ─── MENU BAR ─────────────────────────────────────────────────────────────
+const MENUS=[{id:'upgrades',label:'⚔️ Upgrades'},{id:'buildings',label:'🏗️ Gebäude'},{id:'wall',label:'🏰 Mauer'},{id:'spells',label:'✨ Zauber'},{id:'machines',label:'⚙️ Maschine'}];
 const menuButtons=[];
 
 function drawMenuBar(){
@@ -709,16 +745,16 @@ function drawMenuBar(){
   });
 }
 
-// --- HUD ------------------------------------------------------------------
+// ─── HUD ──────────────────────────────────────────────────────────────────
 function drawHUD(){
   ctx.fillStyle='#ffd700'; ctx.font='bold 15px Segoe UI'; ctx.textAlign='left';
-  ctx.fillText(`?? ${gs.gold}`,PANEL_W+10,28);
+  ctx.fillText(`💰 ${gs.gold}`,PANEL_W+10,28);
   ctx.fillStyle='#6699ff';
-  ctx.fillText(`?? ${Math.floor(gs.mana)}/${gs.manaMax}`,PANEL_W+120,28);
+  ctx.fillText(`🔵 ${Math.floor(gs.mana)}/${gs.manaMax}`,PANEL_W+120,28);
   ctx.fillStyle='#7fffaa'; ctx.textAlign='right';
-  ctx.fillText(`? ${gs.score}`,W-110,28);
+  ctx.fillText(`★ ${gs.score}`,W-110,28);
   ctx.fillStyle='#ff8888';
-  ctx.fillText(`?? ${gs.kills}`,W-12,28);
+  ctx.fillText(`💀 ${gs.kills}`,W-12,28);
   ctx.fillStyle='#fff';
   ctx.fillText(`Welle ${gs.wave}`,W-12,48);
   const tbw=W-PANEL_W-250,tbh=8,tbx=PANEL_W+240,tby=34;
@@ -728,12 +764,12 @@ function drawHUD(){
   ctx.beginPath(); ctx.roundRect(tbx,tby,tbw*(1-pct),tbh,3); ctx.fill();
   ctx.strokeStyle='#333'; ctx.lineWidth=1; ctx.beginPath(); ctx.roundRect(tbx,tby,tbw,tbh,3); ctx.stroke();
   ctx.fillStyle='#888'; ctx.font='10px monospace'; ctx.textAlign='center';
-  ctx.fillText(`N�chste Welle: ${Math.ceil(gs.waveTimer)}s`,tbx+tbw/2,tby-2);
+  ctx.fillText(`Nächste Welle: ${Math.ceil(gs.waveTimer)}s`,tbx+tbw/2,tby-2);
 }
 
-// --- BACKGROUND -----------------------------------------------------------
+// ─── BACKGROUND ───────────────────────────────────────────────────────────
 function drawBackground(){
-  // -- ENEMY ZONE: above wall � dark reddish dirt, enemy territory --
+  // ── ENEMY ZONE: above wall — dark reddish dirt, enemy territory ──
   const enemyGrad = ctx.createLinearGradient(0, 0, 0, wall.y);
   enemyGrad.addColorStop(0, '#0e0604');
   enemyGrad.addColorStop(0.55, '#170b08');
@@ -741,7 +777,7 @@ function drawBackground(){
   ctx.fillStyle = enemyGrad;
   ctx.fillRect(0, 0, W, wall.y);
 
-  // Enemy zone ground texture (subtle grid � trampled dirt look)
+  // Enemy zone ground texture (subtle grid — trampled dirt look)
   ctx.strokeStyle = 'rgba(100,35,18,0.16)';
   ctx.lineWidth = 1;
   const gSz = 38;
@@ -752,7 +788,7 @@ function drawBackground(){
     ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke();
   }
 
-  // -- FRIENDLY ZONE: below wall � warm green grass --
+  // ── FRIENDLY ZONE: below wall — warm green grass ──
   const friendlyGrad = ctx.createLinearGradient(0, wall.y + wall.h, 0, H - MENU_H);
   friendlyGrad.addColorStop(0, '#112811');
   friendlyGrad.addColorStop(1, '#0a1c0a');
@@ -769,7 +805,7 @@ function drawBackground(){
     ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke();
   }
 
-  // -- ENEMY CAMP TENTS (top-down view: circles with panel lines + center pole) --
+  // ── ENEMY CAMP TENTS (top-down view: circles with panel lines + center pole) ──
   const tentDefs = [
     {fx:0.055, fy:0.10}, {fx:0.185, fy:0.18}, {fx:0.325, fy:0.065},
     {fx:0.500, fy:0.135}, {fx:0.645, fy:0.075}, {fx:0.795, fy:0.195},
@@ -804,7 +840,7 @@ function drawBackground(){
     ctx.beginPath(); ctx.arc(tx - 1, ty - 1, 1.5, 0, Math.PI * 2); ctx.fill();
   }
 
-  // -- ROCKS scattered in enemy zone --
+  // ── ROCKS scattered in enemy zone ──
   const rockDefs = [
     {fx:0.125, fy:0.40, rw:14, rh:9,  ang: 0.30},
     {fx:0.270, fy:0.285,rw:11, rh:7,  ang:-0.50},
@@ -832,7 +868,7 @@ function drawBackground(){
     ctx.beginPath(); ctx.ellipse(rx - rk.rw * 0.28, ry - rk.rh * 0.28, rk.rw * 0.42, rk.rh * 0.38, rk.ang, 0, Math.PI * 2); ctx.fill();
   }
 
-  // -- FRIENDLY ZONE decorations: small trees/bushes near edges --
+  // ── FRIENDLY ZONE decorations: small trees/bushes near edges ──
   const fzTop = wall.y + wall.h;
   const fzH   = H - MENU_H - fzTop;
   const treeDefs = [
@@ -859,7 +895,7 @@ function drawBackground(){
 }
 
 
-// --- BUILDING ICONS ----------------------------------------
+// ─── BUILDING ICONS ────────────────────────────────────────
 function drawBuildingIcons(){
   const sz=40,gap=8;
   const bDefs=[
@@ -893,7 +929,7 @@ function drawBuildingIcons(){
     ctx.fillText(item.label,bx+sz/2,iconY+sz-3);
   });
 }
-// --- ANNOUNCE -------------------------------------------------------------
+// ─── ANNOUNCE ─────────────────────────────────────────────────────────────
 function drawAnnounce(){
   if(gs.wavePreviewComposition&&gs.waveTimer>0&&gs.waveTimer<=2.0){
     const comp=gs.wavePreviewComposition;
@@ -908,7 +944,7 @@ function drawAnnounce(){
     ctx.fillStyle=pGrad; ctx.fillRect(0,pyTop-40,W,110);
     ctx.font='bold 30px Segoe UI'; ctx.textAlign='center';
     ctx.fillStyle='#ff4444';
-    ctx.fillText(`? WAVE ${comp.wave} INCOMING!`,W/2,pyTop+8);
+    ctx.fillText(`⚠ WAVE ${comp.wave} INCOMING!`,W/2,pyTop+8);
     const parts=[];
     if(comp.goblins>0) parts.push(`${comp.goblins} Goblins`);
     if(comp.orcs>0) parts.push(`${comp.orcs} Orcs`);
@@ -927,8 +963,8 @@ function drawAnnounce(){
   bannerGrad.addColorStop(1,'rgba(0,0,0,0)');
   ctx.fillStyle=bannerGrad; ctx.fillRect(0,H/2-70,W,120);
   ctx.font='bold 64px Segoe UI'; ctx.textAlign='center';
-  ctx.fillStyle='rgba(0,0,0,0.55)'; ctx.fillText(`? WAVE ${gs.wave} ?`,W/2+2,H/2+2);
-  ctx.fillStyle='#ffd700'; ctx.fillText(`? WAVE ${gs.wave} ?`,W/2,H/2);
+  ctx.fillStyle='rgba(0,0,0,0.55)'; ctx.fillText(`⚔ WAVE ${gs.wave} ⚔`,W/2+2,H/2+2);
+  ctx.fillStyle='#ffd700'; ctx.fillText(`⚔ WAVE ${gs.wave} ⚔`,W/2,H/2);
   ctx.font='22px Segoe UI';
   if(gs.waveComposition){
     const wc=gs.waveComposition;
@@ -944,7 +980,7 @@ function drawAnnounce(){
   ctx.restore();
 }
 
-// --- SPELL EFFECTS --------------------------------------------------------
+// ─── SPELL EFFECTS ────────────────────────────────────────────────────────
 function drawSpellEffects(){
   gs.spellEffects.forEach(e=>{
     const a=e.timer*2;
@@ -955,20 +991,20 @@ function drawSpellEffects(){
   });
 }
 
-// --- SCREENS --------------------------------------------------------------
+// ─── SCREENS ──────────────────────────────────────────────────────────────
 function drawStartScreen(){
   ctx.fillStyle='#030810'; ctx.fillRect(0,0,W,H);
   ctx.fillStyle='rgba(255,255,255,0.5)';
   for(let s=0;s<120;s++){ ctx.fillRect((s*157+13)%W,(s*101+7)%H,1,1); }
   ctx.textAlign='center';
   ctx.font='bold 72px Segoe UI'; ctx.fillStyle='rgba(0,0,0,0.7)';
-  ctx.fillText('?? WALLKEEPERS',W/2+3,H/2-120+3);
-  ctx.fillStyle='#ffd700'; ctx.fillText('?? WALLKEEPERS',W/2,H/2-120);
+  ctx.fillText('⚔️ WALLKEEPERS',W/2+3,H/2-120+3);
+  ctx.fillStyle='#ffd700'; ctx.fillText('⚔️ WALLKEEPERS',W/2,H/2-120);
   ctx.font='20px Segoe UI'; ctx.fillStyle='#8899cc';
-  ctx.fillText('Verteidige die Mauer. �berlebe so lange wie m�glich.',W/2,H/2-70);
-  if(gs.bestWave>0){ ctx.fillStyle='#66aaff'; ctx.font='16px Segoe UI'; ctx.fillText(`?? Bestleistung: Welle ${gs.bestWave}`,W/2,H/2-40); }
+  ctx.fillText('Verteidige die Mauer. Überlebe so lange wie möglich.',W/2,H/2-70);
+  if(gs.bestWave>0){ ctx.fillStyle='#66aaff'; ctx.font='16px Segoe UI'; ctx.fillText(`🏆 Bestleistung: Welle ${gs.bestWave}`,W/2,H/2-40); }
   ctx.font='15px Segoe UI'; ctx.fillStyle='#aaa'; ctx.fillText('Schwierigkeitsgrad:',W/2,H/2);
-  const diffs=[{id:'leicht',label:'?? Leicht'},{id:'normal',label:'?? Normal'},{id:'schwer',label:'?? Schwer'}];
+  const diffs=[{id:'leicht',label:'🟢 Leicht'},{id:'normal',label:'🟡 Normal'},{id:'schwer',label:'🔴 Schwer'}];
   diffs.forEach((d,i)=>{
     const bw=130,bh=44,bx=W/2-210+i*145,by=H/2+15;
     ctx.fillStyle=gs.difficulty===d.id?'#1a3a6a':'#0f1a30';
@@ -982,7 +1018,7 @@ function drawStartScreen(){
   ctx.fillStyle='#1a5a1a'; ctx.beginPath(); ctx.roundRect(pbx,pby,pbw,pbh,10); ctx.fill();
   ctx.strokeStyle='#3aaa3a'; ctx.lineWidth=2; ctx.beginPath(); ctx.roundRect(pbx,pby,pbw,pbh,10); ctx.stroke();
   ctx.fillStyle='#7fff7f'; ctx.font='bold 22px Segoe UI'; ctx.textAlign='center';
-  ctx.fillText('?? SPIELEN',pbx+pbw/2,pby+pbh/2+8);
+  ctx.fillText('🎮 SPIELEN',pbx+pbw/2,pby+pbh/2+8);
   startButtons.push({x:pbx,y:pby,w:pbw,h:pbh,action:'play'});
 }
 
@@ -990,35 +1026,35 @@ function drawGameOver(){
   ctx.fillStyle='rgba(0,0,0,0.85)'; ctx.fillRect(0,0,W,H);
   ctx.textAlign='center';
   ctx.font='bold 64px Segoe UI'; ctx.fillStyle='#f44336';
-  ctx.fillText('?? GAME OVER',W/2,H/2-110);
+  ctx.fillText('💀 GAME OVER',W/2,H/2-110);
   ctx.font='28px Segoe UI'; ctx.fillStyle='#fff';
   ctx.fillText(`Wave ${gs.wave} reached`,W/2,H/2-55);
   ctx.font='22px Segoe UI'; ctx.fillStyle='#7fffaa';
-  ctx.fillText(`? Score: ${gs.score}`,W/2,H/2-5);
+  ctx.fillText(`★ Score: ${gs.score}`,W/2,H/2-5);
   ctx.fillStyle='#ff9999';
-  ctx.fillText(`?? Kills: ${gs.kills}`,W/2,H/2+30);
+  ctx.fillText(`💀 Kills: ${gs.kills}`,W/2,H/2+30);
   ctx.fillStyle='#ffd700';
-  if(gs.score>0&&gs.score>=gs.highScore) ctx.fillText(`?? NEW HIGH SCORE: ${gs.highScore}`,W/2,H/2+65);
-  else ctx.fillText(`?? Best Score: ${gs.highScore}  |  Best Wave: ${gs.bestWave}`,W/2,H/2+65);
+  if(gs.score>0&&gs.score>=gs.highScore) ctx.fillText(`🏆 NEW HIGH SCORE: ${gs.highScore}`,W/2,H/2+65);
+  else ctx.fillText(`🏆 Best Score: ${gs.highScore}  |  Best Wave: ${gs.bestWave}`,W/2,H/2+65);
   const rbw=220,rbh=56,rbx=W/2-rbw/2,rby=H/2+100;
   ctx.fillStyle='#1a2a5a'; ctx.beginPath(); ctx.roundRect(rbx,rby,rbw,rbh,10); ctx.fill();
   ctx.strokeStyle='#4a8aff'; ctx.lineWidth=2; ctx.beginPath(); ctx.roundRect(rbx,rby,rbw,rbh,10); ctx.stroke();
   ctx.fillStyle='#99bbff'; ctx.font='bold 20px Segoe UI';
-  ctx.fillText('? Try Again',rbx+rbw/2,rby+rbh/2+7);
+  ctx.fillText('▶ Try Again',rbx+rbw/2,rby+rbh/2+7);
   goButtons.push({x:rbx,y:rby,w:rbw,h:rbh});
 }
 
-// --- BUTTON STATE ---------------------------------------------------------
+// ─── BUTTON STATE ─────────────────────────────────────────────────────────
 let startButtons=[], goButtons=[];
 
-// --- GAME OVER ------------------------------------------------------------
+// ─── GAME OVER ────────────────────────────────────────────────────────────
 function gameOver(){
   if(gs.wave>gs.bestWave){ gs.bestWave=gs.wave; localStorage.setItem('wk_best',gs.wave); }
   if(gs.score>gs.highScore){ gs.highScore=gs.score; localStorage.setItem('wk_highscore',gs.score); }
   gs.screen='gameover';
 }
 
-// --- START GAME -----------------------------------------------------------
+// ─── START GAME ───────────────────────────────────────────────────────────
 function startGame(){
   resetGS();
   gs.screen='game';
@@ -1031,7 +1067,7 @@ function startGame(){
   gs.waveTimer=5;
 }
 
-// --- INPUT ----------------------------------------------------------------
+// ─── INPUT ────────────────────────────────────────────────────────────────
 function hitTest(btn,x,y){ return x>=btn.x&&x<=btn.x+btn.w&&y>=btn.y&&y<=btn.y+btn.h; }
 
 canvas.addEventListener('mousemove',e=>{
@@ -1069,10 +1105,10 @@ canvas.addEventListener('click',e=>{
 
 function handlePanelClick(label,cost){
   if(gs.activePanel==='upgrades'){
-    if(label.startsWith('??')){ gs.gold-=cost; gs.upgrades.dmgPurchases++; baseDmg+=5; }
-    else if(label.startsWith('?')){ gs.gold-=cost; gs.upgrades.speedPurchases++; baseFireRate+=0.2; }
-    else if(label.startsWith('?')){ gs.gold-=cost; addSoldier('archer'); }
-    else if(label.startsWith('???')){ gs.gold-=cost; addSoldier('spear'); }
+    if(label.startsWith('🏹')){ gs.gold-=cost; gs.upgrades.dmgPurchases++; baseDmg+=5; }
+    else if(label.startsWith('⚡')){ gs.gold-=cost; gs.upgrades.speedPurchases++; baseFireRate+=0.2; }
+    else if(label.startsWith('➕')){ gs.gold-=cost; addSoldier('archer'); }
+    else if(label.startsWith('🗡️')){ gs.gold-=cost; addSoldier('spear'); }
   }
   else if(gs.activePanel==='buildings'){
     if(label.startsWith('Kaserne')){ gs.gold-=cost; gs.buildings.kaserne=true; }
@@ -1083,18 +1119,18 @@ function handlePanelClick(label,cost){
     else if(label.startsWith('Schwertk')){ gs.gold-=cost; gs.buildings.swordsman=true; addSoldier('swordsman'); }
   }
   else if(gs.activePanel==='wall'){
-    if(label.startsWith('???')){ gs.gold-=cost; wall.reinforce(100); }
-    else if(label.startsWith('??')){ gs.gold-=cost; wall.repair(50); }
+    if(label.startsWith('🛡️')){ gs.gold-=cost; wall.reinforce(100); }
+    else if(label.startsWith('🔨')){ gs.gold-=cost; wall.repair(50); }
   }
   else if(gs.activePanel==='spells'){
-    if(label.startsWith('??')) castSpell('feuerball');
-    else if(label.startsWith('??')) castSpell('eisblitz');
-    else if(label.startsWith('?')) castSpell('blitz');
+    if(label.startsWith('🔥')) castSpell('feuerball');
+    else if(label.startsWith('❄️')) castSpell('eisblitz');
+    else if(label.startsWith('⚡')) castSpell('blitz');
   }
   else if(gs.activePanel==='machines'){
     if(label.startsWith('Katapult')){ gs.gold-=cost; gs.machines.katapult=true; gs.machineTimers.katapult=5; }
     else if(label.startsWith('Ballista')){ gs.gold-=cost; gs.machines.ballista=true; gs.machineTimers.ballista=3; }
-    else if(label.startsWith('�l')){ gs.gold-=cost; gs.machines.oelkessel=true; }
+    else if(label.startsWith('Öl')){ gs.gold-=cost; gs.machines.oelkessel=true; }
   }
 }
 
@@ -1103,7 +1139,7 @@ window.addEventListener('keydown',e=>{
   if(e.code==='Escape'&&gs.screen==='game'){ gs.activePanel=null; }
 });
 
-// --- UPDATE ---------------------------------------------------------------
+// ─── UPDATE ───────────────────────────────────────────────────────────────
 function update(dt){
   if(gs.screen!=='game'||gs.paused) return;
   dt=Math.min(dt,0.1);
@@ -1112,6 +1148,18 @@ function update(dt){
 
   gs.waveTimer = Math.max(0, gs.waveTimer - dt);
   if(gs.waveTimer<=0&&!gs.spawning){ gs.waveTimer=gs.waveDuration; startWave(); }
+  if(gs.waveTimer>0&&gs.waveTimer<=2.0&&!gs.spawning&&!gs.wavePreviewDone){
+    gs.wavePreviewDone=true;
+    gs.wavePreviewComposition=computeWavePreview(gs.wave+1);
+  }
+  if(gs.waveTimer>0&&gs.waveTimer<=2.0&&!gs.spawning&&!gs.wavePreviewDone){
+    gs.wavePreviewDone=true;
+    gs.wavePreviewComposition=computeWavePreview(gs.wave+1);
+  }
+  if(gs.waveTimer>0&&gs.waveTimer<=2.0&&!gs.spawning&&!gs.wavePreviewDone){
+    gs.wavePreviewDone=true;
+    gs.wavePreviewComposition=computeWavePreview(gs.wave+1);
+  }
   if(gs.waveTimer>0&&gs.waveTimer<=2.0&&!gs.spawning&&!gs.wavePreviewDone){
     gs.wavePreviewDone=true;
     gs.wavePreviewComposition=computeWavePreview(gs.wave+1);
@@ -1171,7 +1219,7 @@ function update(dt){
   monsters=monsters.filter(m=>!m.dead);
 }
 
-// --- DRAW -----------------------------------------------------------------
+// ─── DRAW ─────────────────────────────────────────────────────────────────
 
 function drawWallMachines() {
   if (!gs.machines) return;
@@ -1264,12 +1312,12 @@ function draw(){
   if(gs.paused){
     ctx.fillStyle='rgba(0,0,0,0.55)'; ctx.fillRect(0,0,W,H);
     ctx.font='bold 52px Segoe UI'; ctx.fillStyle='#fff'; ctx.textAlign='center';
-    ctx.fillText('? PAUSE',W/2,H/2);
+    ctx.fillText('⏸ PAUSE',W/2,H/2);
     ctx.font='18px Segoe UI'; ctx.fillStyle='#888'; ctx.fillText('Leertaste zum Fortfahren',W/2,H/2+45);
   }
 }
 
-// --- LOOP -----------------------------------------------------------------
+// ─── LOOP ─────────────────────────────────────────────────────────────────
 
 // === DEBUG PANEL ===
 let gameSpeed = 1;
