@@ -1,116 +1,64 @@
-# CLAUDE.md — WallKeepers
+# CLAUDE.md — WallKeepers Development Rules
 
-## Projekt-Beschreibung
-**WallKeepers** ist ein browserbasiertetes Fantasy-Tower-Defense / Idle-Clicker-Spiel. Der Spieler verteidigt eine Mauer gegen endlose Monster-Wellen. Wellen werden stärker bis der Spieler stirbt. Ziel: So weit wie möglich kommen.
+> Diese Regeln MÜSSEN bei JEDER Änderung an index.html befolgt werden.
+> Verstösse führen zu schwarzem Bildschirm oder kaputten Icons.
 
-## Status
-🟢 AKTIV — Prototyp in Entwicklung
+## KRITISCHE REGELN
 
-## Tech Stack
-- **Plattform:** Browser (HTML5)
-- **Sprache:** JavaScript (Ausnahme zur C#-Präferenz — C# macht für Browser-Games keinen Sinn)
-- **Framework:** Phaser.js 3 (CDN) oder plain HTML5 Canvas
-- **Build:** Kein Build-Tool nötig für Prototyp — direkt im Browser laufbar
-- **Hosting:** GitHub Pages (Prototyp), später Netlify/itch.io
-- **Repo:** https://github.com/Somecoolname444333/WallKeepers
-
-## Spielkonzept
-
-### Core Loop
-Monster-Wellen angreifen die Mauer → Soldaten/Maschinen töten Monster → Gold verdienen → Gold ausgeben für Upgrades/Gebäude/Mauer → Nächste Welle übersteht besser → Wellen werden schwerer → Irgendwann stirbt man
-
-### Ressourcen
-- **Gold:** Verdient durch tote Monster. Bezahlt Upgrades, Gebäude, Mauer, Maschinen
-- **Mana:** Regeneriert passiv. Bezahlt Zauber
-
-### Siegbedingung
-Keine — man spielt bis man stirbt. Score = erreichte Welle
-
-## Bildschirm-Layout
-
-```
-+--------------------------------------------------+
-|  [Top 2/3]  ANGRIFFSFLÄCHE                       |
-|  Monster bewegen sich von rechts/oben zur Mauer  |
-|                    |MAUER|                        |
-|  [Hinter Mauer] Gebäude sichtbar                 |
-+--------------------------------------------------+
-| [Menüleiste] Upgrades | Gebäude | Mauer | Zauber | Maschine |
-+--------------------------------------------------+
+### 1. Encoding — IMMER UTF-8 ohne BOM
+**NIEMALS** PowerShell `Out-File`, `Set-Content`, `Add-Content` verwenden.
+**IMMER** diese Methode:
+```powershell
+$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+[System.IO.File]::WriteAllText("H:\Projects\WallKeepers\index.html", $content, $utf8NoBom)
 ```
 
-Bei Klick auf Menüpunkt öffnet sich links ein Panel (1/5 Bildschirmbreite, volle Höhe):
-- **Upgrades:** Soldaten-Upgrades (Bogenschützen, Lanzenreiter, etc.)
-- **Gebäude:** Gebäude bauen hinter der Mauer (Kaserne, Turm, Schmiede, etc.)
-- **Mauer:** Mauer-HP, Verstärkung, Türme
-- **Zauber:** Feuerkugel, Eis, Blitz — bezahlt mit Mana
-- **Maschine:** Katapult, Ballista, etc.
-
-## Einheiten & Entities
-
-### Verteidiger (auf der Mauer)
-- Bogenschütze: Schiesst Pfeile, hohe Reichweite, wenig Schaden
-- Lanzenreiter: Nahkampf, viel Schaden, kurze Reichweite
-- Magier: AoE-Schaden, langsame Angriffsrate
-
-### Monster-Typen (Progression)
-- Welle 1-5: Goblins (wenig HP, schnell)
-- Welle 6-15: Orks (mehr HP, normal schnell)
-- Welle 16+: Trolle (viel HP, langsam aber stark)
-- Boss jede 10. Welle
-
-### Maschinen
-- Katapult: Schwerer AoE-Schaden, langsam
-- Ballista: Einzelziel, sehr hoher Schaden
-- Öl-Kessel: Verlangsamt Monster
-
-### Gebäude (hinter Mauer)
-- Kaserne: Erhöht Soldaten-Kapazität
-- Schmiede: Verbessert Waffen-Schaden passiv
-- Magierturm: Erhöht Mana-Regeneration
-- Lagerhaus: Erhöht Gold-Limit
-
-## Prototyp-Ziele (MVP)
-1. Mauer mit HP-Bar sichtbar
-2. Monster spawnen in Wellen, bewegen sich zur Mauer
-3. Bogenschützen auf der Mauer schiessen automatisch
-4. Gold verdienen wenn Monster sterben
-5. Einfaches Upgrade-Menü (Bogenschütze upgraden)
-6. Wellen-Counter und Wave-Difficulty-Scaling
-7. Game Over wenn Mauer-HP = 0
-
-## Ordnerstruktur
-```
-WallKeepers/
-├── CLAUDE.md
-├── index.html
-├── src/
-│   ├── main.js          ← Einstiegspunkt
-│   ├── game.js          ← Phaser Game-Konfiguration
-│   ├── scenes/
-│   │   ├── GameScene.js ← Haupt-Spielszene
-│   │   ├── UIScene.js   ← HUD und Menüs
-│   │   └── MenuScene.js ← Hauptmenü
-│   ├── entities/
-│   │   ├── Wall.js
-│   │   ├── Monster.js
-│   │   ├── Soldier.js
-│   │   └── Projectile.js
-│   ├── systems/
-│   │   ├── WaveManager.js
-│   │   ├── Economy.js
-│   │   └── UpgradeSystem.js
-│   └── ui/
-│       └── SidePanel.js
-├── assets/
-│   ├── sprites/
-│   └── audio/
-└── README.md
+### 2. Duplikat-Schutz — vor JEDEM Patch prüfen
+Bevor Code eingefügt wird, IMMER prüfen ob der Code bereits existiert:
+```powershell
+$content = [System.IO.File]::ReadAllText("H:\Projects\WallKeepers\index.html", [System.Text.Encoding]::UTF8)
+# Prüfen ob Ziel-String schon vorhanden
+if ($content -match 'NEUER_FUNKTIONSNAME') { Write-Output "BEREITS VORHANDEN — nicht nochmals einfügen!" }
 ```
 
-## Kontext für Claude
-- Priorität: Funktion vor Ästhetik im Prototyp
-- Placeholder-Grafiken (farbige Rechtecke/Kreise) sind OK für Prototyp
-- Keine externen Assets nötig — alles Canvas-gezeichnet
-- Code auf Deutsch kommentieren ist nicht nötig
-- Nach jeder grossen Änderung: Git commit + push zu GitHub
+### 3. Nach JEDER Änderung — Integritätscheck
+```powershell
+$content = [System.IO.File]::ReadAllText("H:\Projects\WallKeepers\index.html", [System.Text.Encoding]::UTF8)
+$repChars = ($content.ToCharArray() | Where-Object { [int]$_ -eq 65533 }).Count
+$hpPct = ([regex]::Matches($content, 'const hp_pct')).Count
+$scoreMap = ([regex]::Matches($content, 'const scoreMap')).Count
+Write-Output "Replacement chars: $repChars (muss 0 sein)"
+Write-Output "hp_pct Deklarationen: $hpPct (muss 1 sein)"
+Write-Output "scoreMap Deklarationen: $scoreMap (muss 1 sein)"
+if ($repChars -gt 0 -or $hpPct -gt 1 -or $scoreMap -gt 1) { Write-Output "FEHLER — nicht pushen!" }
+```
+
+### 4. Python als Alternative (encoding-safe)
+```python
+# Lesen
+with open(r'H:\Projects\WallKeepers\index.html', 'r', encoding='utf-8') as f:
+    content = f.read()
+# Schreiben
+with open(r'H:\Projects\WallKeepers\index.html', 'w', encoding='utf-8', newline='\n') as f:
+    f.write(content)
+```
+
+### 5. Push — IMMER binary-safe
+```powershell
+$bytes = [System.IO.File]::ReadAllBytes("H:\Projects\WallKeepers\index.html")
+$b64 = [Convert]::ToBase64String($bytes)
+```
+NIEMALS den file-content als String in PowerShell base64-encoden — das zerstört UTF-8.
+
+## BEKANNTE BUGS (bereits gefixt — nicht nochmals einbauen)
+- `const hp_pct` — darf nur 1x in wall.draw() existieren
+- `const scoreMap` — darf nur 1x im Monster-Kill-Handler existieren
+- Wave preview block — darf nur 1x im game loop existieren
+- UTF-8 BOM (`\xef\xbb\xbf`) — darf NICHT im File sein
+
+## GAME STRUKTUR
+- Single file: H:\Projects\WallKeepers\index.html (~285KB)
+- Repo: https://github.com/Somecoolname444333/WallKeepers
+- Live: https://somecoolname444333.github.io/WallKeepers/
+- Branch: master
+- Letzter stabiler Commit vor Problemen: 641110f
