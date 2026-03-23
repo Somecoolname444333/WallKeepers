@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="de">
 <head>
 <meta charset="UTF-8"/>
@@ -141,9 +141,15 @@ const wall = { x:0, y:0, w:0, h:40, hp:500, maxHp:500,
       for (let col = -1; col < Math.ceil(w / brickW) + 1; col++) {
         const bx = col * brickW + offset;
         const by = y + row * brickH;
-        ctx.fillStyle = row % 2 === 0 ? '#7A6548' : '#6e5a3e';
+        const bg=ctx.createLinearGradient(bx+1,by+1,bx+1,by+brickH-1);
+        bg.addColorStop(0,row%2===0?'#907b5c':'#806b4c');
+        bg.addColorStop(0.4,row%2===0?'#7A6548':'#6e5a3e');
+        bg.addColorStop(1,row%2===0?'#5a4528':'#4e3a1e');
+        ctx.fillStyle=bg;
         ctx.fillRect(bx + 1, by + 1, brickW - 2, brickH - 2);
-        ctx.strokeStyle = '#5C4A32'; ctx.lineWidth = 1.5;
+        ctx.fillStyle='rgba(255,255,255,0.07)';
+        ctx.fillRect(bx+2,by+2,brickW-4,2);
+        ctx.strokeStyle = '#4a3820'; ctx.lineWidth = 1.5;
         ctx.strokeRect(bx + 1, by + 1, brickW - 2, brickH - 2);
       }
     }
@@ -383,9 +389,9 @@ class Soldier {
       return;
     }
     const r = 10;
-    const col = this.type === 'archer' ? '#2980b9' : '#c0392b';
-    const outlineCol = this.type === 'archer' ? '#1a5276' : '#7b241c';
-    const highlightCol = this.type === 'archer' ? '#5dade2' : '#e74c3c';
+    const col = this.type==='archer'?'#2980b9':this.type==='spear'?'#b05010':'#c0392b';
+    const outlineCol = this.type==='archer'?'#1a5276':this.type==='spear'?'#7a3208':'#7b241c';
+    const highlightCol = this.type==='archer'?'#5dade2':this.type==='spear'?'#e8803a':'#e74c3c';
 
     ctx.save(); ctx.translate(this.x, this.y);
 
@@ -410,6 +416,21 @@ class Soldier {
     // Inner ring detail (armor/shield indicator)
     ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.arc(0, 0, r * 0.6, 0, Math.PI * 2); ctx.stroke();
+    if(this.type==='archer'){
+      ctx.strokeStyle='rgba(120,170,230,0.65)';ctx.lineWidth=2;ctx.lineCap='round';
+      ctx.beginPath();ctx.arc(0,-1,r*0.42,-Math.PI+0.2,-0.2);ctx.stroke();
+      ctx.strokeStyle='rgba(60,110,190,0.5)';ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(-r*0.25,r*0.05);ctx.lineTo(r*0.25,r*0.05);ctx.stroke();
+      ctx.lineCap='butt';
+    }
+    if(this.type==='spear'){
+      ctx.strokeStyle='rgba(230,120,30,0.55)';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.arc(0,0,r*0.72,0,Math.PI*2);ctx.stroke();
+      ctx.strokeStyle='rgba(255,160,60,0.45)';ctx.lineWidth=1;ctx.lineCap='round';
+      ctx.beginPath();ctx.moveTo(0,-r*0.35);ctx.lineTo(0,r*0.35);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(-r*0.3,0);ctx.lineTo(r*0.3,0);ctx.stroke();
+      ctx.lineCap='butt';
+    }
 
     if(this.target){
       ctx.save(); ctx.rotate(this.angle);
@@ -478,19 +499,30 @@ class Projectile {
     if(this.hit) return;
     if(!this.target||this.target.dead){
       this.x+=this.vx*this.spd*dt; this.y+=this.vy*this.spd*dt;
-      this.trail.push({x:this.x,y:this.y}); if(this.trail.length>6) this.trail.shift();
+      this.trail.push({x:this.x,y:this.y}); if(this.trail.length>8) this.trail.shift();
       if(this.x<-50||this.x>W+50||this.y<-100||this.y>H+50) this.hit=true;
       return;
     }
     const dx=this.target.x-this.x,dy=this.target.y-this.y,dist=Math.sqrt(dx*dx+dy*dy);
     if(dist<this.target.r+4){this.target.takeDmg(this.dmg);this.hit=true;onMonsterHit(this.target);return;}
-    this.trail.push({x:this.x,y:this.y}); if(this.trail.length>6) this.trail.shift();
+    this.trail.push({x:this.x,y:this.y}); if(this.trail.length>8) this.trail.shift();
     const nx=dx/dist,ny=dy/dist; this.vx=nx; this.vy=ny; this.x+=nx*this.spd*dt; this.y+=ny*this.spd*dt;
   }
   draw(){
     if(this.hit) return;
-    for(let i=0;i<this.trail.length;i++){ ctx.fillStyle=`rgba(255,200,80,${(i/this.trail.length)*.35})`; ctx.beginPath(); ctx.arc(this.trail[i].x,this.trail[i].y,2,0,Math.PI*2); ctx.fill(); }
+    if(this.trail.length>1){
+      ctx.lineCap='round';
+      for(let i=1;i<this.trail.length;i++){
+        const ta=i/this.trail.length;
+        ctx.strokeStyle=`rgba(255,215,70,${ta*0.65})`;
+        ctx.lineWidth=1+ta*2.5;
+        ctx.beginPath();ctx.moveTo(this.trail[i-1].x,this.trail[i-1].y);
+        ctx.lineTo(this.trail[i].x,this.trail[i].y);ctx.stroke();
+      }
+      ctx.lineCap='butt';
+    }
     ctx.fillStyle='#ffe080'; ctx.beginPath(); ctx.arc(this.x,this.y,3.5,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.75)'; ctx.beginPath(); ctx.arc(this.x,this.y,1.5,0,Math.PI*2); ctx.fill();
   }
 }
 
@@ -777,6 +809,15 @@ function drawBackground(){
   ctx.fillStyle = enemyGrad;
   ctx.fillRect(0, 0, W, wall.y);
 
+  // Dirt path strip directly above the wall (where enemies march)
+  const _pathH=58;
+  const pathGrad=ctx.createLinearGradient(0,wall.y-_pathH,0,wall.y);
+  pathGrad.addColorStop(0,'rgba(90,55,8,0)');
+  pathGrad.addColorStop(0.35,'rgba(120,85,18,0.75)');
+  pathGrad.addColorStop(1,'rgba(139,105,20,0.92)');
+  ctx.fillStyle=pathGrad;
+  ctx.fillRect(0,wall.y-_pathH,W,_pathH);
+
   // Enemy zone ground texture (subtle grid — trampled dirt look)
   ctx.strokeStyle = 'rgba(100,35,18,0.16)';
   ctx.lineWidth = 1;
@@ -806,6 +847,30 @@ function drawBackground(){
   }
 
   // ── ENEMY CAMP TENTS (top-down view: circles with panel lines + center pole) ──
+  // Grass blade clusters (seeded, drawn in friendly zone)
+  {
+    const _sr=(s)=>{const v=Math.sin(s)*43758.5453;return v-Math.floor(v);};
+    const _fz=wall.y+wall.h, _fh=H-MENU_H-_fz;
+    ctx.lineCap='round';
+    for(let i=0;i<95;i++){
+      const gx=_sr(i*13.7+1.23)*W;
+      const gy=_fz+6+_sr(i*7.3+9.87)*(_fh-10);
+      const blades=3+Math.floor(_sr(i*3.1)*3);
+      const gr=50+Math.floor(_sr(i*2.3)*28);
+      ctx.strokeStyle=`rgba(15,${gr},6,0.62)`;
+      ctx.lineWidth=1;
+      for(let b=0;b<blades;b++){
+        const bx=gx+(b-blades/2)*3.5;
+        const len=5+_sr(i*4+b*3)*8;
+        const lean=(_sr(i*11+b*7)-0.5)*1.0;
+        ctx.beginPath();ctx.moveTo(bx,gy);
+        ctx.lineTo(bx+Math.sin(lean)*len,gy-Math.cos(lean)*len+1);
+        ctx.stroke();
+      }
+    }
+    ctx.lineCap='butt';
+  }
+
   const tentDefs = [
     {fx:0.055, fy:0.10}, {fx:0.185, fy:0.18}, {fx:0.325, fy:0.065},
     {fx:0.500, fy:0.135}, {fx:0.645, fy:0.075}, {fx:0.795, fy:0.195},
