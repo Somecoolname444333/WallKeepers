@@ -237,8 +237,7 @@ class Monster {
     if(this.slowTimer>0){ this.slowTimer-=dt; if(this.slowTimer<=0) this.slowed=false; }
     this.wobble+=dt*8*this.wobDir; if(Math.abs(this.wobble)>0.4) this.wobDir*=-1;
     if(!this.attacking){
-      this.y+=this.effectiveSpd*dt;
-      this.isoRow += this.effectiveSpd * 0.009;
+      this.isoRow += this.effectiveSpd * 0.0086 * dt;
       if (ISO.originX > 0) {
         const sp = isoToScreen(this.isoCol, this.isoRow);
         this.x = sp.x;
@@ -844,6 +843,32 @@ function drawIsoGrid() {
     }
 }
 
+function drawWallBlocks(){
+  for(let wx=0;wx<COLS;wx++){
+    const bH = ISO.TH*4.0;
+    const shade=(wx%2===0)?1:0.93;
+    const topC='rgb('+Math.floor(155*shade)+','+Math.floor(132*shade)+','+Math.floor(101*shade)+')';
+    const leftC='rgb('+Math.floor(109*shade)+','+Math.floor(92*shade)+','+Math.floor(63*shade)+')';
+    const rightC='rgb('+Math.floor(122*shade)+','+Math.floor(104*shade)+','+Math.floor(71*shade)+')';
+    drawIsoBlock(wx,WALL_ROW,bH,topC,leftC,rightC,'#3a2810');
+    if(wx%2===0){
+      const p=ISO.toScreen(wx+0.25,WALL_ROW-0.15);
+      const mH=ISO.TH*0.7, mW=ISO.TW*0.28;
+      ctx.beginPath();
+      ctx.moveTo(p.x,     p.y-mH);
+      ctx.lineTo(p.x+mW,  p.y-mH+ISO.TH*0.14);
+      ctx.lineTo(p.x+mW,  p.y+ISO.TH*0.14);
+      ctx.lineTo(p.x,     p.y);
+      ctx.lineTo(p.x-mW,  p.y+ISO.TH*0.14);
+      ctx.lineTo(p.x-mW,  p.y-mH+ISO.TH*0.14);
+      ctx.closePath();
+      ctx.fillStyle='rgb('+Math.floor(145*shade)+','+Math.floor(125*shade)+','+Math.floor(93*shade)+')';
+      ctx.fill();
+      ctx.strokeStyle='#3a2810'; ctx.lineWidth=0.5; ctx.stroke();
+    }
+  }
+}
+
 function drawBackground(){
   // Base fill
   ctx.fillStyle='#060304'; ctx.fillRect(0,0,W,H-MENU_H);
@@ -1329,6 +1354,7 @@ function draw(){
   ctx.save(); ctx.translate(sx,sy);
 
   drawIsoGrid();
+  drawWallBlocks();
   drawSpellEffects();
 
   // ─── DEPTH-SORTED ENTITY RENDERING ──────────────────────────────────────
