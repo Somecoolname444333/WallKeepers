@@ -100,7 +100,7 @@ function initLayout() {
   ISO.originY = 38;
   wallX = 0; wallW = W;
   wallY = Math.floor(gameH * WALL_ROW / ROWS);
-  wallH = Math.floor(ISO.TH * 4.0);
+  wallH = Math.floor(ISO.TH * 2.5);
   if (wall) { wall.x = wallX; wall.y = wallY; wall.w = wallW; wall.h = wallH; }
   repositionSoldiers();
 }
@@ -844,23 +844,53 @@ function drawIsoGrid() {
 }
 
 function drawWallBlocks(){
+  const {TW, TH} = ISO;
+  const bH = TH * 2.5;
+  const hw = TW/2, hh = TH/2, th = TH;
   for(let wx=0;wx<COLS;wx++){
-    const bH = ISO.TH*4.0;
+    const {x: _sx, y: sy} = ISO.toScreen(wx, WALL_ROW);
+    const x = _sx + TW/2;
+    const y = sy - bH;
     const shade=(wx%2===0)?1:0.93;
     const topC='rgb('+Math.floor(155*shade)+','+Math.floor(132*shade)+','+Math.floor(101*shade)+')';
     const leftC='rgb('+Math.floor(109*shade)+','+Math.floor(92*shade)+','+Math.floor(63*shade)+')';
     const rightC='rgb('+Math.floor(122*shade)+','+Math.floor(104*shade)+','+Math.floor(71*shade)+')';
-    drawIsoBlock(wx,WALL_ROW,bH,topC,leftC,rightC,'#3a2810');
+    ctx.beginPath();
+    ctx.moveTo(x,    y);
+    ctx.lineTo(x+hw, y+hh);
+    ctx.lineTo(x,    y+th);
+    ctx.lineTo(x-hw, y+hh);
+    ctx.closePath();
+    ctx.fillStyle=topC; ctx.fill();
+    ctx.strokeStyle='#3a2810'; ctx.lineWidth=0.5; ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x-hw, y+hh);
+    ctx.lineTo(x,    y+th);
+    ctx.lineTo(x,    y+th+bH);
+    ctx.lineTo(x-hw, y+hh+bH);
+    ctx.closePath();
+    ctx.fillStyle=leftC; ctx.fill();
+    ctx.strokeStyle='#3a2810'; ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x,    y+th);
+    ctx.lineTo(x+hw, y+hh);
+    ctx.lineTo(x+hw, y+hh+bH);
+    ctx.lineTo(x,    y+th+bH);
+    ctx.closePath();
+    ctx.fillStyle=rightC; ctx.fill();
+    ctx.strokeStyle='#3a2810'; ctx.stroke();
     if(wx%2===0){
-      const p=ISO.toScreen(wx+0.25,WALL_ROW-0.15);
-      const mH=ISO.TH*0.7, mW=ISO.TW*0.28;
+      const {x: _px, y: py0} = ISO.toScreen(wx+0.25, WALL_ROW-0.15);
+      const px = _px + TW/2;
+      const py = py0 - bH;
+      const mH=TH*0.7, mW=TW*0.28;
       ctx.beginPath();
-      ctx.moveTo(p.x,     p.y-mH);
-      ctx.lineTo(p.x+mW,  p.y-mH+ISO.TH*0.14);
-      ctx.lineTo(p.x+mW,  p.y+ISO.TH*0.14);
-      ctx.lineTo(p.x,     p.y);
-      ctx.lineTo(p.x-mW,  p.y+ISO.TH*0.14);
-      ctx.lineTo(p.x-mW,  p.y-mH+ISO.TH*0.14);
+      ctx.moveTo(px,     py-mH);
+      ctx.lineTo(px+mW,  py-mH+TH*0.14);
+      ctx.lineTo(px+mW,  py+TH*0.14);
+      ctx.lineTo(px,     py);
+      ctx.lineTo(px-mW,  py+TH*0.14);
+      ctx.lineTo(px-mW,  py-mH+TH*0.14);
       ctx.closePath();
       ctx.fillStyle='rgb('+Math.floor(145*shade)+','+Math.floor(125*shade)+','+Math.floor(93*shade)+')';
       ctx.fill();
@@ -933,7 +963,7 @@ function drawBackground(){
 
   // Wall row: raised stone blocks
   for(let wx=0;wx<COLS;wx++){
-    const bH = ISO.TH*4.0;
+    const bH = ISO.TH*2.5;
     const shade=(wx%2===0)?1:0.93;
     const topC='rgb('+Math.floor(155*shade)+','+Math.floor(132*shade)+','+Math.floor(101*shade)+')';
     const leftC='rgb('+Math.floor(109*shade)+','+Math.floor(92*shade)+','+Math.floor(63*shade)+')';
@@ -1036,7 +1066,7 @@ function drawWallMachines(){
   if(gs.machines.ballista) mList.push({type:'ballista'});
   if(gs.machines.katapult) mList.push({type:'katapult'});
   if(mList.length===0) return;
-  const bH=ISO.TH*4.0;
+  const bH=ISO.TH*2.5;
   mList.forEach((m,i)=>{
     const wx=(i+0.5)*COLS/(mList.length+1)*(mList.length);
     const p=ISO.toScreen(wx+0.5, WALL_ROW);
