@@ -524,7 +524,9 @@ let baseDmg=15, baseFireRate=1.0;
 function repositionSoldiers(){
   if(!soldiers.length) return;
   const spacing = W / (soldiers.length + 1);
-  soldiers.forEach((s,i)=>{ s.x = spacing*(i+1); s.y = wall.y; s.homeX=s.x; s.homeY=s.y; });
+  const _gameH = H - MENU_H;
+  const _wallTopY = (WALL_ROW + 1) / ROWS * _gameH;
+  soldiers.forEach((s,i)=>{ s.x = spacing*(i+1); s.y = _wallTopY; s.homeX=s.x; s.homeY=s.y; });
   soldiers.forEach(s=>{ s.buffed=false; s.cooldownMult=1; });
   soldiers.forEach((s,i)=>{
     if(s.type==='swordsman'){
@@ -969,22 +971,7 @@ function drawBackground(){
     const leftC='rgb('+Math.floor(109*shade)+','+Math.floor(92*shade)+','+Math.floor(63*shade)+')';
     const rightC='rgb('+Math.floor(122*shade)+','+Math.floor(104*shade)+','+Math.floor(71*shade)+')';
     drawIsoBlock(wx,WALL_ROW,bH,topC,leftC,rightC,'#3a2810');
-    // Merlon on top of every 2nd block
-    if(wx%2===0){
-      const p=ISO.toScreen(wx+0.25,WALL_ROW-0.15);
-      const mH=ISO.TH*0.7, mW=ISO.TW*0.28;
-      ctx.beginPath();
-      ctx.moveTo(p.x,     p.y-mH);
-      ctx.lineTo(p.x+mW,  p.y-mH+ISO.TH*0.14);
-      ctx.lineTo(p.x+mW,  p.y+ISO.TH*0.14);
-      ctx.lineTo(p.x,     p.y);
-      ctx.lineTo(p.x-mW,  p.y+ISO.TH*0.14);
-      ctx.lineTo(p.x-mW,  p.y-mH+ISO.TH*0.14);
-      ctx.closePath();
-      ctx.fillStyle='rgb('+Math.floor(145*shade)+','+Math.floor(125*shade)+','+Math.floor(93*shade)+')';
-      ctx.fill();
-      ctx.strokeStyle='#3a2810'; ctx.lineWidth=0.5; ctx.stroke();
-    }
+
   }
 
   // Friendly zone decorations: small trees as iso structures
