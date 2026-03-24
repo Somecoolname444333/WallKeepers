@@ -525,7 +525,7 @@ function repositionSoldiers(){
   if(!soldiers.length) return;
   const spacing = W / (soldiers.length + 1);
   const _gameH = H - MENU_H;
-  const _wallTopY = (WALL_ROW + 1) / ROWS * _gameH;
+  const _wallTopY = (WALL_ROW - 5) / ROWS * _gameH;
   soldiers.forEach((s,i)=>{ s.x = spacing*(i+1); s.y = _wallTopY; s.homeX=s.x; s.homeY=s.y; });
   soldiers.forEach(s=>{ s.buffed=false; s.cooldownMult=1; });
   soldiers.forEach((s,i)=>{
@@ -881,23 +881,7 @@ function drawWallBlocks(){
     ctx.closePath();
     ctx.fillStyle=rightC; ctx.fill();
     ctx.strokeStyle='#3a2810'; ctx.stroke();
-    if(wx%2===0){
-      const {x: _px, y: py0} = ISO.toScreen(wx+0.25, WALL_ROW-0.15);
-      const px = _px + TW/2;
-      const py = py0 - bH;
-      const mH=TH*0.7, mW=TW*0.28;
-      ctx.beginPath();
-      ctx.moveTo(px,     py-mH);
-      ctx.lineTo(px+mW,  py-mH+TH*0.14);
-      ctx.lineTo(px+mW,  py+TH*0.14);
-      ctx.lineTo(px,     py);
-      ctx.lineTo(px-mW,  py+TH*0.14);
-      ctx.lineTo(px-mW,  py-mH+TH*0.14);
-      ctx.closePath();
-      ctx.fillStyle='rgb('+Math.floor(145*shade)+','+Math.floor(125*shade)+','+Math.floor(93*shade)+')';
-      ctx.fill();
-      ctx.strokeStyle='#3a2810'; ctx.lineWidth=0.5; ctx.stroke();
-    }
+
   }
 }
 
