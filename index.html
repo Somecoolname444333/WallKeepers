@@ -100,7 +100,7 @@ function initLayout() {
   ISO.originY = 38;
   wallX = 0; wallW = W;
   wallY = Math.floor(gameH * WALL_ROW / ROWS);
-  wallH = Math.floor(ISO.TH * 2.5);
+  wallH = Math.floor(ISO.TH * 4.0);
   if (wall) { wall.x = wallX; wall.y = wallY; wall.w = wallW; wall.h = wallH; }
   repositionSoldiers();
 }
@@ -238,13 +238,13 @@ class Monster {
     this.wobble+=dt*8*this.wobDir; if(Math.abs(this.wobble)>0.4) this.wobDir*=-1;
     if(!this.attacking){
       this.y+=this.effectiveSpd*dt;
-      this.isoRow += this.effectiveSpd * 0.015;
+      this.isoRow += this.effectiveSpd * 0.009;
       if (ISO.originX > 0) {
         const sp = isoToScreen(this.isoCol, this.isoRow);
         this.x = sp.x;
         this.y = sp.y;
       }
-      if(this.y+this.r>=wall.y){ this.y=wall.y-this.r; this.attacking=true; }
+      if(this.isoRow>=WALL_ROW-0.5){ this.isoRow=WALL_ROW-0.5; const _sp=isoToScreen(this.isoCol,this.isoRow); this.x=_sp.x; this.y=_sp.y; this.attacking=true; }
     }
     if(this.attacking){ this.atkTimer+=dt; }
   }
@@ -525,7 +525,7 @@ let baseDmg=15, baseFireRate=1.0;
 function repositionSoldiers(){
   if(!soldiers.length) return;
   const spacing = W / (soldiers.length + 1);
-  soldiers.forEach((s,i)=>{ s.x = spacing*(i+1); s.y = wall.y + wall.h / 2; s.homeX=s.x; s.homeY=s.y; });
+  soldiers.forEach((s,i)=>{ s.x = spacing*(i+1); s.y = wall.y; s.homeX=s.x; s.homeY=s.y; });
   soldiers.forEach(s=>{ s.buffed=false; s.cooldownMult=1; });
   soldiers.forEach((s,i)=>{
     if(s.type==='swordsman'){
@@ -908,7 +908,7 @@ function drawBackground(){
 
   // Wall row: raised stone blocks
   for(let wx=0;wx<COLS;wx++){
-    const bH = ISO.TH*1.8;
+    const bH = ISO.TH*4.0;
     const shade=(wx%2===0)?1:0.93;
     const topC='rgb('+Math.floor(155*shade)+','+Math.floor(132*shade)+','+Math.floor(101*shade)+')';
     const leftC='rgb('+Math.floor(109*shade)+','+Math.floor(92*shade)+','+Math.floor(63*shade)+')';
@@ -1011,7 +1011,7 @@ function drawWallMachines(){
   if(gs.machines.ballista) mList.push({type:'ballista'});
   if(gs.machines.katapult) mList.push({type:'katapult'});
   if(mList.length===0) return;
-  const bH=ISO.TH*1.8;
+  const bH=ISO.TH*4.0;
   mList.forEach((m,i)=>{
     const wx=(i+0.5)*COLS/(mList.length+1)*(mList.length);
     const p=ISO.toScreen(wx+0.5, WALL_ROW);
